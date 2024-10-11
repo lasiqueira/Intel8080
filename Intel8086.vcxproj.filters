@@ -19,12 +19,4 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="resources\listing_0037_single_register_mov">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="resources\listing_0038_many_register_mov">
-      <Filter>Resource Files</Filter>
-    </None>
-  </ItemGroup>
 </Project>
