@@ -21,10 +21,26 @@ std::unordered_map<uint8_t, std::array<std::string, 2>> get_register_map()
 }
 auto g_register_map = get_register_map();
 
+std::array<std::string, 8> get_memory_addresses()
+{
+	std::array<std::string, 8>  memory_addresses;
+	memory_addresses[0x00] = "BX+SI";
+	memory_addresses[0x01] = "BX+DI";
+	memory_addresses[0x02] = "BP+SI";
+	memory_addresses[0x03] = "BP+DI";
+	memory_addresses[0x04] = "SI";
+	memory_addresses[0x05] = "DI";
+	memory_addresses[0x06] = "BP";
+	memory_addresses[0x07] = "BX";
+	return memory_addresses;
+}
+
+auto g_memory_addresses = get_memory_addresses();
+
 void disassemble_8086_opcode(std::vector<uint8_t> &buffer, uint32_t &offset)
 {
 	uint8_t opcode = buffer[offset];
-	
+
 	//MOV Register/memory to/from register
 	if ((opcode >> 2) == 0x22)
 	{
@@ -48,15 +64,59 @@ void disassemble_8086_opcode(std::vector<uint8_t> &buffer, uint32_t &offset)
 		//Register to Register
 		if(mod == 0x03)
 		{
-			std::cout << "MOV " << g_register_map[dst][w] << ", " << g_register_map[src][w] << std::endl;
+			std::string reg_source = g_register_map[src][w];
+			std::string reg_dest = g_register_map[dst][w];
+			std::cout << "MOV " << reg_dest << ", " << reg_source << std::endl;
 			offset++;
 
 		}
-		//TODO address calculation mappings
+		else if (mod == 0x00)
+		{
+			std::string memory_address = d==0? g_memory_addresses[dst] : g_memory_addresses[src];
+			std::string reg = d == 0 ? g_register_map[src][w] : g_register_map[dst][w];
+			if(d == 0)
+			{
+				std::cout << "MOV [" << memory_address << "], " << reg << std::endl;
+			} else
+			{
+				std::cout << "MOV " << reg << ", [" << memory_address << "]" << std::endl;
+			}
+			offset++;
+		}
+		else if (mod == 0x01)
+		{	
+			std::string memory_address = d==0? g_memory_addresses[dst] : g_memory_addresses[src];
+			std::string reg = d == 0 ? g_register_map[src][w] : g_register_map[dst][w];
+			uint8_t imm = buffer[offset + 2];
+			if(d == 0)
+			{
+				std::cout << "MOV [" << memory_address << "+" << +imm << "], " << reg << std::endl;
+			} else
+			{
+				std::cout << "MOV " << reg << ", [" << memory_address << "+" << +imm << "]" << std::endl;
+			}
+			offset+=2;
+		}
+		else if (mod == 0x02)
+		{
+			std::string memory_address = d==0? g_memory_addresses[dst] : g_memory_addresses[src];
+			std::string reg = d == 0 ? g_register_map[src][w] : g_register_map[dst][w];
+			uint16_t imm = buffer[offset + 2] | buffer[offset + 3] << 8;
+			if(d == 0)
+			{
+				std::cout << "MOV [" << memory_address << "+" << imm << "], " << reg << std::endl;
+			}
+			else
+			{
+				std::cout << "MOV " << reg << ", [" << memory_address << "+" << imm << "]" << std::endl;
+			}
+			offset += 3;
+		}
 		else
 		{
 		std::cout << "Opcode not implemented:b0=0x" << std::hex << +opcode << " b1=0x" << std::hex << +modrm << std::endl;
-		exit(1);		}
+		exit(1);		
+		}
 	}
 	//immediate to register
 	else if((opcode >> 4) == 0xB)
@@ -68,7 +128,8 @@ void disassemble_8086_opcode(std::vector<uint8_t> &buffer, uint32_t &offset)
 		{
 			imm |= buffer[offset + 2] << 8;
 		}
-		std::cout << "MOV " << g_register_map[reg][w] << ", " << imm << std::endl;
+		std::string reg_dest = g_register_map[reg][w];
+		std::cout << "MOV " << reg_dest << ", " << imm << std::endl;
 		offset+=1+w;
 		
 	}
