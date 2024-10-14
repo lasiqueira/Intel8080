@@ -26,13 +26,15 @@ void disassemble_8086_opcode(std::vector<uint8_t> &buffer, uint32_t &offset)
 	uint8_t opcode = buffer[offset];
 	
 	//MOV Register/memory to/from register
-	if (opcode >> 2 == 0x22)
+	if ((opcode >> 2) == 0x22)
 	{
-		uint8_t d = (opcode >> 1) & 0x01;
+		uint8_t d = (opcode & 0x02) >> 1;
 		uint8_t w = opcode & 0x01;
 		uint8_t modrm = buffer[offset + 1];
+		uint8_t mod = (modrm & 0xC0) >> 6;
 		uint8_t src;
 		uint8_t dst;
+		
 		if (d == 0)
 		{
 			src = (modrm >> 3) & 0x07;
@@ -43,11 +45,33 @@ void disassemble_8086_opcode(std::vector<uint8_t> &buffer, uint32_t &offset)
 			src = modrm & 0x07;
 			dst = (modrm >> 3) & 0x07;
 		}
+		//Register to Register
+		if(mod == 0x03)
+		{
+			std::cout << "MOV " << g_register_map[dst][w] << ", " << g_register_map[src][w] << std::endl;
+			offset++;
 
-		std::cout << "MOV " << g_register_map[dst][w] << ", " << g_register_map[src][w] << std::endl;
-		offset++;
+		}
+		//TODO address calculation mappings
+		else
+		{
+		std::cout << "Opcode not implemented:b0=0x" << std::hex << +opcode << " b1=0x" << std::hex << +modrm << std::endl;
+		exit(1);		}
 	}
-	
+	//immediate to register
+	else if((opcode >> 4) == 0xB)
+	{
+		uint8_t w = (opcode & 0x08) >> 3;
+		uint8_t reg = opcode & 0x07;
+		uint16_t imm = buffer[offset + 1];
+		if(w == 1)
+		{
+			imm |= buffer[offset + 2] << 8;
+		}
+		std::cout << "MOV " << g_register_map[reg][w] << ", " << imm << std::endl;
+		offset+=1+w;
+		
+	}
 	else
 	{
 		std::cout << "Opcode not implemented: b0=0x" << std::hex << +opcode << std::endl;

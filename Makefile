@@ -1,6 +1,5 @@
 CC = clang++
 CFLAGS = -O3 -std=c++17
-CFLAGS = -O3
 SRC = src/main.cpp
 OUT = intel8086
 
