@@ -33,7 +33,7 @@ void get_memory_addresses(std::array<std::string, 8> &memory_addresses)
 
 std::array<std::string, 8> g_memory_addresses;
 
-void disassemble_8086_opcode(std::vector<uint8_t> &buffer, uint32_t &offset)
+void disassemble_8086_opcode(const std::vector<uint8_t> &buffer, uint32_t &offset)
 {
 	uint8_t opcode = buffer[offset];
 
@@ -199,7 +199,7 @@ void disassemble_8086_opcode(std::vector<uint8_t> &buffer, uint32_t &offset)
 	
 }
 
-void read_file(const std::string& filename, std::vector<uint8_t> &buffer)
+void read_file(const std::string_view filename, std::vector<uint8_t> &buffer)
 {
 	std::ifstream file(filename, std::ios::in | std::ios::binary);
 	file.unsetf(std::ios::skipws);
