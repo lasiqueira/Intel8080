@@ -202,6 +202,34 @@ void disassemble_8086_opcode(const std::vector<uint8_t> &buffer, uint32_t &offse
 		}
 
 	}
+	//MOV memory to accumulator
+	else if ((opcode>>1) == 0x50)
+	{
+		uint8_t w = opcode & 0x01;
+		uint16_t imm = buffer[offset + 1];
+		if (w == 1)
+		{
+			imm |= buffer[offset + 2] << 8;
+		}
+		std::string reg = g_register_map[0x00][w];
+		std::cout << "MOV " << reg << ", [" << imm << "]" << std::endl;
+		offset += 1 + w;
+
+	}
+	//MOV accumulator to memory
+	else if ((opcode >> 1) == 0x51)
+	{
+		uint8_t w = opcode & 0x01;
+		uint16_t imm = buffer[offset + 1];
+		if (w == 1)
+		{
+			imm |= buffer[offset + 2] << 8;
+		}
+		std::string reg = g_register_map[0x00][w];
+		std::cout << "MOV [" << imm << "], " << reg << std::endl;
+		offset += 1 + w;
+	}
+
 	else
 	{
 		std::cout << "Opcode not implemented: b0=0x" << std::hex << +opcode << std::endl;
