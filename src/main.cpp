@@ -70,7 +70,17 @@ void disassemble_8086_opcode(const std::vector<uint8_t> &buffer, uint32_t &offse
 		}
 		else if (mod == 0x00)
 		{
-			std::string memory_address = d==0? g_memory_addresses[dst] : g_memory_addresses[src];
+			std::string memory_address;
+			//immediate memory address to register
+			if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06)) {
+				uint16_t imm = buffer[offset + 2] | buffer[offset + 3] << 8;
+				memory_address = std::to_string(imm);
+				offset += 2;
+			}
+			else {
+				memory_address = d == 0 ? g_memory_addresses[dst] : g_memory_addresses[src];
+			}
+			
 			std::string reg = d == 0 ? g_register_map[src][w] : g_register_map[dst][w];
 			if(d == 0)
 			{
