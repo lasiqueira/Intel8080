@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 #include <array>
+#include <string>
+#include <string_view>
 
 void get_register_map(std::unordered_map<uint8_t, std::array<std::string, 2>> &register_map)
 {
@@ -201,7 +203,7 @@ void disassemble_8086_opcode(const std::vector<uint8_t> &buffer, uint32_t &offse
 
 void read_file(const std::string_view filename, std::vector<uint8_t> &buffer)
 {
-	std::ifstream file(filename, std::ios::in | std::ios::binary);
+	std::ifstream file(filename.data(), std::ios::in | std::ios::binary);
 	file.unsetf(std::ios::skipws);
 	std::streampos fileSize;
 	file.seekg(0, std::ios::end);
