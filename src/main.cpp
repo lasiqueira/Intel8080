@@ -334,8 +334,20 @@ void disassemble_8086_opcode(const std::vector<uint8_t> &buffer, uint32_t &offse
 		uint8_t dst = modrm & 0x07;
 		if(mod == 0x00)
 		{
-			std::string memory_address = g_memory_addresses[dst];
+			std::string memory_address;
+			
+			if (dst == 0x06)
+			{
+				uint16_t imm_adr = buffer[offset + 2] | buffer[offset + 3] << 8;
+				memory_address = std::to_string(imm_adr);
+				offset += 2;
+			}
+			else 
+			{
+				memory_address = g_memory_addresses[dst];
+			}
 			uint16_t imm = buffer[offset + 2];
+
 			if(w == 1 && s == 0)
 			{
 				imm |= buffer[offset + 3] << 8;
@@ -525,6 +537,102 @@ void disassemble_8086_opcode(const std::vector<uint8_t> &buffer, uint32_t &offse
 		std::string reg = g_register_map[0x00][w];
 		std::cout << "SUB " << reg << ", " << imm << std::endl;
 		offset+=1+w;
+	}
+	// CMP reg/memory and register
+	else if(opcode >> 2 == 0x0E)
+	{
+		uint8_t d = (opcode & 0x02) >> 1;
+		uint8_t w = opcode & 0x01;
+		uint8_t modrm = buffer[offset + 1];
+		uint8_t mod = (modrm & 0xC0) >> 6;
+		uint8_t src;
+		uint8_t dst;
+
+		if (d == 0)
+		{
+			src = (modrm >> 3) & 0x07;
+			dst = modrm & 0x07;
+		}
+		else
+		{
+			src = modrm & 0x07;
+			dst = (modrm >> 3) & 0x07;
+		}
+		//Register and Register
+		if(mod == 0x03)
+		{
+			std::string reg_source = g_register_map[src][w];
+			std::string reg_dest = g_register_map[dst][w];
+			std::cout << "CMP " << reg_dest << ", " << reg_source << std::endl;
+			offset++;
+
+		}
+		else if (mod == 0x00)
+		{
+			std::string memory_address;
+			//immediate memory address with register
+			if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06)) 
+			{
+				uint16_t imm = buffer[offset + 2] | buffer[offset + 3] << 8;
+				memory_address = std::to_string(imm);
+				offset += 2;
+			}
+			else 
+			{
+				memory_address = d == 0 ? g_memory_addresses[dst] : g_memory_addresses[src];
+			}
+			
+			std::string reg = d == 0 ? g_register_map[src][w] : g_register_map[dst][w];
+			if(d == 0)
+			{
+				std::cout << "CMP [" << memory_address << "], " << reg << std::endl;
+			} else
+			{
+				std::cout << "CMP " << reg << ", [" << memory_address << "]" << std::endl;
+			}
+			offset++;
+		}
+		else if (mod == 0x01)
+		{	
+			std::string memory_address = d==0? g_memory_addresses[dst] : g_memory_addresses[src];
+			std::string reg = d == 0 ? g_register_map[src][w] : g_register_map[dst][w];
+			uint8_t disp = buffer[offset + 2];
+			if(d == 0)
+			{
+				std::cout << "CMP [" << memory_address << "+" << +disp << "], " << reg << std::endl;
+			} else
+			{
+				std::cout << "CMP " << reg << ", [" << memory_address << "+" << +disp << "]" << std::endl;
+			}
+			offset+=2;
+		}
+		else if(mod == 0x02)
+		{
+			std::string memory_address = d==0? g_memory_addresses[dst] : g_memory_addresses[src];
+			std::string reg = d == 0 ? g_register_map[src][w] : g_register_map[dst][w];
+			uint16_t disp = buffer[offset + 2] | buffer[offset + 3] << 8;
+			if(d == 0)
+			{
+				std::cout << "CMP [" << memory_address << "+" << +disp << "], " << reg << std::endl;
+			} else
+			{
+				std::cout << "CMP " << reg << ", [" << memory_address << "+" << +disp << "]" << std::endl;
+			}
+			offset+=3;
+		}
+	}
+	// CMP accumulator with immediate
+	else if (opcode >> 1 == 0x1E)
+	{
+		uint8_t w = opcode & 0x01;
+		uint16_t imm = buffer[offset + 1];
+		if (w == 1)
+		{
+			imm |= buffer[offset + 2] << 8;
+		}
+		std::string reg = g_register_map[0x00][w];
+		std::cout << "CMP " << reg << ", " << imm << std::endl;
+		offset += 1 + w;
 	}
 	else
 	{
