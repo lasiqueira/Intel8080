@@ -634,6 +634,153 @@ void disassemble_8086_opcode(const std::vector<uint8_t> &buffer, uint32_t &offse
 		std::cout << "CMP " << reg << ", " << imm << std::endl;
 		offset += 1 + w;
 	}
+	//JNZ
+	else if(opcode == 0x75)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JNZ " << +imm << std::endl;
+		offset++;
+	}
+	//JE
+	else if(opcode == 0x74)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JE " << +imm << std::endl;
+		offset++;
+	}
+	//JL
+	else if(opcode == 0x7C)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JL " << +imm << std::endl;
+		offset++;
+	}
+	//JLE
+	else if(opcode == 0x7E)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JLE " << +imm << std::endl;
+		offset++;
+	}
+	//JB
+	else if(opcode == 0x72)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JB " << +imm << std::endl;
+		offset++;
+	}
+	//JBE
+	else if(opcode == 0x76)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JBE " << +imm << std::endl;
+		offset++;
+	}
+	//JP
+	else if(opcode == 0x7A)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JP " << +imm << std::endl;
+		offset++;
+	}
+	//JO
+	else if(opcode == 0x70)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JO " << +imm << std::endl;
+		offset++;
+	}
+	//JS
+	else if(opcode == 0x78)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JS " << +imm << std::endl;
+		offset++;
+	}
+	//JNE
+	else if(opcode == 0x75)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JNE " << +imm << std::endl;
+		offset++;
+	}
+	//JNL
+	else if(opcode == 0x7D)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JNL " << +imm << std::endl;
+		offset++;
+	}
+	//JG
+	else if(opcode == 0x7F)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JG " << +imm << std::endl;
+		offset++;
+	}
+	//JNB
+	else if(opcode == 0x73)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JNB " << +imm << std::endl;
+		offset++;
+	}
+	//JA
+	else if(opcode == 0x77)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JA " << +imm << std::endl;
+		offset++;
+	}
+	//JNP
+	else if(opcode == 0x7B)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JNP " << +imm << std::endl;
+		offset++;
+	}
+	//JNO
+	else if(opcode == 0x71)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JNO " << +imm << std::endl;
+		offset++;
+	}
+	//JNS
+	else if(opcode == 0x79)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JNS " << +imm << std::endl;
+		offset++;
+	}
+	//LOOP
+	else if(opcode == 0xE2)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "LOOP " << +imm << std::endl;
+		offset++;
+	}
+	//LOOPZ
+	else if(opcode == 0xE1)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "LOOPZ " << +imm << std::endl;
+		offset++;
+	}
+	//LOOPNZ
+	else if(opcode == 0xE0)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "LOOPNZ " << +imm << std::endl;
+		offset++;
+	}
+	//JCXZ
+	else if(opcode == 0xE3)
+	{
+		int8_t imm = buffer[offset + 1];
+		std::cout << "JCXZ " << +imm << std::endl;
+		offset++;
+	}
 	else
 	{
 		std::cout << "Opcode not implemented: b0=0x" << std::hex << +opcode << std::endl;
