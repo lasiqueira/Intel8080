@@ -9,8 +9,8 @@
 class CpuState
 {
 private:
-	// need to think of a better way to store registers
-	// the way it is now it won't work with the high 8 bits of the registers
+	
+	//TODO when working with w == 0, use mod to get the correct register, then use reg to determine if high or low
 	
 	//registers AX, CX, DX, BX, SP, BP, SI, DI
 	std::array<uint16_t, 8> registers_;
