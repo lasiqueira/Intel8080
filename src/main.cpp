@@ -53,5 +53,6 @@ int main(int argc, char* argv[])
 	{
 		cpu_state.DecodeInstruction(buffer, offset);
 	}
+	cpu_state.PrintRegisters();
 	return 0;
 }

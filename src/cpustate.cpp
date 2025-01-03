@@ -127,11 +127,11 @@ void CpuState::MovRegMemToFromReg(const std::vector<uint8_t>& buffer, uint32_t& 
 	}
 	switch (mod)
 	{
-		case 0x00: MovRmtfgMem(buffer, offset, d, w, src, dst); break;
-		case 0x01: MovRmtfgMemDisp8(buffer, offset, d, w, src, dst); break;
-		case 0x02: MovRmtfgMemDisp16(buffer, offset, d, w, src, dst); break;
-		case 0x03: MovRmtfgReg(src, dst, w, offset); break;
-		default: std::cout << "Invalid MOD value: " << mod << std::endl; exit(1);
+	case 0x00: MovRmtfgMem(buffer, offset, d, w, src, dst); break;
+	case 0x01: MovRmtfgMemDisp8(buffer, offset, d, w, src, dst); break;
+	case 0x02: MovRmtfgMemDisp16(buffer, offset, d, w, src, dst); break;
+	case 0x03: MovRmtfgReg(src, dst, w, offset); break;
+	default: std::cout << "Invalid MOD value: " << mod << std::endl; exit(1);
 	}
 }
 
@@ -196,6 +196,37 @@ void CpuState::MovRmtfgReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset
 {
 	std::string reg_source = dis_registers_[src][w];
 	std::string reg_dest = dis_registers_[dst][w];
+	if (w == 1)
+	{
+		registers_[dst] = registers_[src];
+	}
+	else
+	{
+		uint8_t val = 0;
+		//low byte
+		if(src < 4)
+		{
+			val = registers_[src] & 0x00FF;
+		}
+		//high byte
+		else
+		{
+			val = registers_[src % 4] & 0xFF00;
+		}
+		//low byte
+		if (dst < 4)
+		{
+			registers_[dst] &= 0xFF00;
+			registers_[dst] |= val;
+		}
+		//high byte
+		else
+		{
+			registers_[dst % 4] &= 0x00FF;
+			registers_[dst % 4] |= (val << 8);
+		}
+		
+	}
 	DisassembleInstruction("MOV " + reg_dest + ", " + reg_source);
 	offset++;
 }
@@ -252,13 +283,30 @@ void CpuState::MovItrmReg(uint8_t dst, uint8_t w, const std::vector<uint8_t>& bu
 
 void CpuState::MovImmToReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t reg)
 {
-	uint16_t imm = buffer[offset + 2];
+	uint16_t imm = buffer[offset + 1];
 	if (w == 1)
 	{
-		imm |= buffer[offset + 3] << 8;
+		imm |= buffer[offset + 2] << 8;
+		registers_[reg] = imm;
 	}
-	DisassembleInstruction("MOV " + dis_registers_[reg][1] + ", " + std::to_string(imm));
-	offset += 2 + w;
+	else 
+	{	
+		//low byte
+		if (reg < 4)
+		{
+			registers_[reg] &= 0xFF00;
+			registers_[reg] |= imm;
+		}
+		//high byte
+		else
+		{
+			registers_[reg % 4] &= 0x00FF;
+			registers_[reg % 4] |= (imm << 8);
+		}
+	}
+	DisassembleInstruction("MOV " + dis_registers_[reg][w] + ", " + std::to_string(imm));
+	
+	offset += 1 + w;
 }
 
 void CpuState::MovMemToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w)
