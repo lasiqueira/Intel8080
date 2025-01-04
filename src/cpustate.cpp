@@ -17,8 +17,22 @@ void CpuState::PrintRegisters()
 {
 	for (size_t i = 0; i < registers_.size(); i++)
 	{
-		std::cout << dis_registers_[i][1] << ": " << registers_[i] << std::endl;
+		std::cout << dis_registers_[i][1] << ": " << registers_[i] << " ";
 	}
+	std::cout << std::endl;
+}
+
+void CpuState::PrintFlags()
+{
+	std::cout << "CF: " << flags_.carry_ << " "
+		<< "PF: " << flags_.parity_ << " "
+		<< "AF: " << flags_.aux_carry_ << " "
+		<< "ZF: " << flags_.zero_ << " "
+		<< "SF: " << flags_.sign_ << " "
+		<< "OF: " << flags_.overflow_ << " "
+		<< "IF: " << flags_.interrupt_enable_ << " "
+		<< "DF: " << flags_.direction_ << " "
+		<< "TF: " << flags_.trap_ << std::endl;
 }
 
 void CpuState::DisassembleInstruction(const std::string_view instruction)
@@ -107,6 +121,28 @@ void CpuState::DecodeInstruction(const std::vector<uint8_t>& buffer, uint32_t& o
 
 //ops
 
+void CpuState::SetFlags(uint16_t val)
+{
+	flags_.zero_ = (val == 0);
+	flags_.sign_ = (val & 0x8000) != 0;
+	flags_.parity_ = CheckParity(val);
+
+	//TODO implement other flags
+}
+
+bool CpuState::CheckParity(uint16_t val)
+{
+	uint8_t low_bits = val & 0xFF;
+	uint8_t count = 0;
+	for (size_t i = 0; i < 8; i++)
+	{
+		if (low_bits & (1 << i))
+		{
+			count++;
+		}
+	}
+	return count % 2 == 0;
+}
 //MOV Register/memory to/from register
 void CpuState::MovRegMemToFromReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w)
 {
@@ -421,6 +457,9 @@ void CpuState::AddRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offse
 {
 	std::string reg_source = dis_registers_[src][w];
 	std::string reg_dest = dis_registers_[dst][w];
+	//TODO check how low/high byte registers are done for arithmetic operations
+	registers_[dst] += registers_[src];
+	SetFlags(registers_[dst]);
 	DisassembleInstruction("ADD " + reg_dest + ", " + reg_source);
 	offset++;
 }
@@ -528,6 +567,16 @@ void CpuState::AddAdcSubSbcCmpItrmReg(const std::vector<uint8_t>& buffer, uint32
 		imm |= buffer[offset + 3] << 8;
 		offset += 1;
 	}
+
+	//TODO implement others
+	//TODO check how low/high byte registers are done for arithmetic operations
+	switch (arith)
+	{
+		case 0x00: registers_[dst] += imm; SetFlags(registers_[dst]); break;
+		case 0x05: registers_[dst] -= imm; SetFlags(registers_[dst]); break;
+		case 0x07: SetFlags(registers_[dst] - imm); break;
+		default: break;
+	}
 	if (s == 1)
 	{
 		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(static_cast<int16_t>(imm)));
@@ -546,6 +595,11 @@ void CpuState::AddImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	{
 		imm |= buffer[offset + 2] << 8;
 	}
+
+	//TODO check if low high acc needs to be implemented. Even the disassemble might need to be fixed as I'd be considering only the low;
+	registers_[0] += imm;
+	SetFlags(registers_[0]);
+	
 	DisassembleInstruction("ADD " + dis_registers_[0][w] + ", " + std::to_string(imm));
 	offset += 1 + w;
 }
@@ -637,6 +691,9 @@ void CpuState::SubRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offse
 {
 	std::string reg_source = dis_registers_[src][w];
 	std::string reg_dest = dis_registers_[dst][w];
+	//TODO check how low/high byte registers are done for arithmetic operations
+	registers_[dst] -= registers_[src];
+	SetFlags(registers_[dst]);
 	DisassembleInstruction("SUB " + reg_dest + ", " + reg_source);
 	offset++;
 }
@@ -648,6 +705,11 @@ void CpuState::SubImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	{
 		imm |= buffer[offset + 2] << 8;
 	}
+	
+	//TODO check if low high acc needs to be implemented. Even the disassemble might need to be fixed as I'd be considering only the low;
+	registers_[0] -= imm;
+	SetFlags(registers_[0]);
+
 	DisassembleInstruction("SUB " + dis_registers_[0][w] + ", " + std::to_string(imm));
 	offset += 1 + w;
 }
@@ -739,6 +801,8 @@ void CpuState::CmpRmarReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset)
 {
 	std::string reg_source = dis_registers_[src][w];
 	std::string reg_dest = dis_registers_[dst][w];
+	//TODO check how low/high byte registers are done for arithmetic operations
+	SetFlags(registers_[dst] - registers_[src]);
 	DisassembleInstruction("CMP " + reg_dest + ", " + reg_source);
 	offset++;
 }
@@ -750,6 +814,8 @@ void CpuState::CmpImmWithAcc(const std::vector<uint8_t>& buffer, uint32_t& offse
 	{
 		imm |= buffer[offset + 2] << 8;
 	}
+	//TODO check if low high acc needs to be implemented. Even the disassemble might need to be fixed as I'd be considering only the low;
+	SetFlags(registers_[0] - imm);
 	DisassembleInstruction("CMP " + dis_registers_[0][w] + ", " + std::to_string(imm));
 	offset += 1 + w;
 }

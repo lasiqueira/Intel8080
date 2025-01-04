@@ -6,6 +6,20 @@
 #include <vector>
 #include <unordered_map>
 
+struct Flags
+{
+	uint16_t carry_ : 1;
+	uint16_t parity_ : 1;
+	uint16_t aux_carry_ : 1;
+	uint16_t zero_ : 1;
+	uint16_t sign_ : 1;
+	uint16_t overflow_ : 1;
+	uint16_t interrupt_enable_ : 1;
+	uint16_t direction_ : 1;
+	uint16_t trap_ : 1;
+	uint16_t pad_ : 7;
+};
+
 class CpuState
 {
 private:
@@ -14,6 +28,8 @@ private:
 	
 	//registers AX, CX, DX, BX, SP, BP, SI, DI
 	std::array<uint16_t, 8> registers_;
+
+	Flags flags_;
 	
 	//disassembler helper arrays
 
@@ -52,6 +68,8 @@ private:
 		{0x07, "CMP"}
 	};
 	
+	void SetFlags(uint16_t val);
+	bool CheckParity(uint16_t val);
 
 	//ops
 	////MOV Register/memory to/from register
@@ -184,6 +202,7 @@ public:
 	CpuState();
 	~CpuState();
 	void PrintRegisters();
+	void PrintFlags();
 	void DisassembleInstruction(const std::string_view instruction);
 	void DecodeInstruction(const std::vector<uint8_t>& buffer, uint32_t& offset);
 };
