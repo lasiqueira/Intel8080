@@ -68,76 +68,76 @@ private:
 		{0x07, "CMP"}
 	};
 	
-	void SetFlags(uint16_t val);
-	bool CheckParity(uint16_t val);
+	void SetFlags(const uint16_t val);
+	bool CheckParity(const uint16_t val) const;
 
 	//ops
 	////MOV Register/memory to/from register
-	void MovRegMemToFromReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w);
+	void MovRegMemToFromReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w);
 	////MOV immediate to register/memory
-	void MovImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w);
+	void MovImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w);
 	////MOV immediate to register
-	void MovImmToReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t reg);
+	void MovImmToReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t reg);
 	////MOV memory to accumulator
-	void MovMemToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w);
+	void MovMemToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w);
 	////MOV accumulator to memory
-	void MovAccToMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w);
+	void MovAccToMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w);
 
 	//// MovRegMemToFromReg subfunctions
-	void MovRmtfgReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset);
-	void MovRmtfgMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void MovRmtfgMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void MovRmtfgMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
+	void MovRmtfgReg(const uint8_t src, const uint8_t dst, const uint8_t w, uint32_t& offset);
+	void MovRmtfgMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d,  const uint8_t w, const uint8_t src, const uint8_t dst);
+	void MovRmtfgMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void MovRmtfgMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
 	//// MovImmToRegMem subfunctions
-	void MovItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t dst);
-	void MovItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t dst);
-	void MovItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t dst);
+	void MovItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t dst);
+	void MovItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t dst);
+	void MovItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t dst);
 	void MovItrmReg(uint8_t dst, uint8_t w, const std::vector<uint8_t>& buffer, uint32_t& offset);
 
 	////ADD reg/memory with register to either
-	void AddRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w);
+	void AddRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w);
 
 	//// AddRegMemWithRegToEither subfunctions
-	void AddRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void AddRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void AddRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void AddRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset);
+	void AddRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void AddRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void AddRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void AddRmwrtwReg(const uint8_t src, const uint8_t dst, const uint8_t w, uint32_t& offset);
 
 	//// ADD/ADC/SUB/SBC/CMP immediate to register/memory
-	void AddAdcSubSbcCmpImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w);
+	void AddAdcSubSbcCmpImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w);
 
 	//// AddAdcSubSbcCmpImmToRegMem subfunctions
-	void AddAdcSubSbcCmpItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith);
-	void AddAdcSubSbcCmpItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith);
-	void AddAdcSubSbcCmpItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith);
-	void AddAdcSubSbcCmpItrmReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith);
+	void AddAdcSubSbcCmpItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith);
+	void AddAdcSubSbcCmpItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith);
+	void AddAdcSubSbcCmpItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith);
+	void AddAdcSubSbcCmpItrmReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith);
 
 	//// ADD immediate to accumulator
-	void AddImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w);
+	void AddImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w);
 
 	//// SUB reg/memory with register to either
-	void SubRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w);
+	void SubRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w);
 
 	//// SubRegMemWithRegToEither subfunctions
-	void SubRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void SubRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void SubRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void SubRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset);
+	void SubRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void SubRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void SubRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void SubRmwrtwReg(const uint8_t src, const uint8_t dst, const uint8_t w, uint32_t& offset);
 
 	//// SUB immediate to accumulator
-	void SubImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w);
+	void SubImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w);
 
 	//// CMP reg / memory and register
-	void CmpRegMemAndReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w);
+	void CmpRegMemAndReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w);
 
 	//// CmpRegMemAndReg subfunctions
-	void CmpRmarMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void CmpRmarMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void CmpRmarMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst);
-	void CmpRmarReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset);
+	void CmpRmarMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void CmpRmarMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void CmpRmarMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst);
+	void CmpRmarReg(const uint8_t src, const uint8_t dst, const uint8_t w, uint32_t& offset);
 
 	//// CMP immediate to register
-	void CmpImmWithAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w);
+	void CmpImmWithAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w);
 
 	//// JNE/JNZ
 	void JneJnz(const std::vector<uint8_t>& buffer, uint32_t& offset);
@@ -201,8 +201,8 @@ private:
 public:
 	CpuState();
 	~CpuState();
-	void PrintRegisters();
-	void PrintFlags();
+	void PrintRegisters() const;
+	void PrintFlags() const;
 	void DisassembleInstruction(const std::string_view instruction);
 	void DecodeInstruction(const std::vector<uint8_t>& buffer, uint32_t& offset);
 };

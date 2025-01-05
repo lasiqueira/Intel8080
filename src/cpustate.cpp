@@ -7,13 +7,14 @@
 CpuState::CpuState()
 {
 	registers_.fill(0);
+	flags_ = { 0 };
 }
 
 CpuState::~CpuState()
 {
 }
 
-void CpuState::PrintRegisters()
+void CpuState::PrintRegisters() const 
 {
 	for (size_t i = 0; i < registers_.size(); i++)
 	{
@@ -22,7 +23,7 @@ void CpuState::PrintRegisters()
 	std::cout << std::endl;
 }
 
-void CpuState::PrintFlags()
+void CpuState::PrintFlags() const
 {
 	std::cout << "CF: " << flags_.carry_ << " "
 		<< "PF: " << flags_.parity_ << " "
@@ -121,7 +122,7 @@ void CpuState::DecodeInstruction(const std::vector<uint8_t>& buffer, uint32_t& o
 
 //ops
 
-void CpuState::SetFlags(uint16_t val)
+void CpuState::SetFlags(const uint16_t val)
 {
 	flags_.zero_ = (val == 0);
 	flags_.sign_ = (val & 0x8000) != 0;
@@ -130,7 +131,7 @@ void CpuState::SetFlags(uint16_t val)
 	//TODO implement other flags
 }
 
-bool CpuState::CheckParity(uint16_t val)
+bool CpuState::CheckParity(const uint16_t val) const
 {
 	uint8_t low_bits = val & 0xFF;
 	uint8_t count = 0;
@@ -144,7 +145,7 @@ bool CpuState::CheckParity(uint16_t val)
 	return count % 2 == 0;
 }
 //MOV Register/memory to/from register
-void CpuState::MovRegMemToFromReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w)
+void CpuState::MovRegMemToFromReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w)
 {
 	uint8_t modrm = buffer[offset + 1];
 	uint8_t mod = (modrm & 0xC0) >> 6;
@@ -171,7 +172,7 @@ void CpuState::MovRegMemToFromReg(const std::vector<uint8_t>& buffer, uint32_t& 
 	}
 }
 
-void CpuState::MovRmtfgMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::MovRmtfgMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
@@ -196,7 +197,7 @@ void CpuState::MovRmtfgMem(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	offset++;
 }
 
-void CpuState::MovRmtfgMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::MovRmtfgMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
@@ -212,7 +213,7 @@ void CpuState::MovRmtfgMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& of
 	offset += 2;
 }
 
-void CpuState::MovRmtfgMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::MovRmtfgMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
@@ -228,7 +229,7 @@ void CpuState::MovRmtfgMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& o
 	offset += 3;
 }
 
-void CpuState::MovRmtfgReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset)
+void CpuState::MovRmtfgReg(const uint8_t src, const uint8_t dst, const uint8_t w, uint32_t& offset)
 {
 	std::string reg_source = dis_registers_[src][w];
 	std::string reg_dest = dis_registers_[dst][w];
@@ -267,7 +268,7 @@ void CpuState::MovRmtfgReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset
 	offset++;
 }
 
-void CpuState::MovImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w)
+void CpuState::MovImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w)
 {
 	uint8_t modrm = buffer[offset + 1];
 	uint8_t mod = (modrm & 0xC0) >> 6;
@@ -282,7 +283,7 @@ void CpuState::MovImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offs
 	}
 }
 
-void CpuState::MovItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t dst)
+void CpuState::MovItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t dst)
 {
 	uint16_t imm = buffer[offset + 2] | buffer[offset + 3] << 8;
 	std::string memory_address = std::to_string(imm);
@@ -291,7 +292,7 @@ void CpuState::MovItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, 
 	offset += 2;
 }
 
-void CpuState::MovItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t dst)
+void CpuState::MovItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t dst)
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
@@ -300,7 +301,7 @@ void CpuState::MovItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& off
 	offset += 2;
 }
 
-void CpuState::MovItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t dst)
+void CpuState::MovItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t dst)
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
@@ -309,7 +310,7 @@ void CpuState::MovItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& of
 	offset += 3;
 }
 
-void CpuState::MovItrmReg(uint8_t dst, uint8_t w, const std::vector<uint8_t>& buffer, uint32_t& offset)
+void CpuState::MovItrmReg(const uint8_t dst, const uint8_t w, const std::vector<uint8_t>& buffer, uint32_t& offset)
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
@@ -317,7 +318,7 @@ void CpuState::MovItrmReg(uint8_t dst, uint8_t w, const std::vector<uint8_t>& bu
 	offset++;
 }
 
-void CpuState::MovImmToReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w, uint8_t reg)
+void CpuState::MovImmToReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w, const uint8_t reg)
 {
 	uint16_t imm = buffer[offset + 1];
 	if (w == 1)
@@ -345,7 +346,7 @@ void CpuState::MovImmToReg(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	offset += 1 + w;
 }
 
-void CpuState::MovMemToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w)
+void CpuState::MovMemToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w)
 {
 	uint16_t imm = buffer[offset + 1];
 	if (w == 1)
@@ -356,7 +357,7 @@ void CpuState::MovMemToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	offset += 1 + w;
 }
 
-void CpuState::MovAccToMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w)
+void CpuState::MovAccToMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w)
 {
 	uint16_t imm = buffer[offset + 1];
 	if (w == 1)
@@ -367,7 +368,7 @@ void CpuState::MovAccToMem(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	offset += 1 + w;
 }
 
-void CpuState::AddRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w)
+void CpuState::AddRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w)
 {
 	uint8_t modrm = buffer[offset + 1];
 	uint8_t mod = (modrm & 0xC0) >> 6;
@@ -393,7 +394,7 @@ void CpuState::AddRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint
 	}
 }
 
-void CpuState::AddRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::AddRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address;
 	//immediate memory address to register
@@ -420,7 +421,7 @@ void CpuState::AddRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset
 	offset++;
 }
 
-void CpuState::AddRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::AddRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
@@ -437,7 +438,7 @@ void CpuState::AddRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& o
 	offset += 2;
 }
 
-void CpuState::AddRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::AddRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
@@ -464,7 +465,7 @@ void CpuState::AddRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offse
 	offset++;
 }
 
-void CpuState::AddAdcSubSbcCmpImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w)
+void CpuState::AddAdcSubSbcCmpImmToRegMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w)
 {
 	uint8_t opcode = buffer[offset];
 	uint8_t modrm = buffer[offset + 1];
@@ -481,7 +482,7 @@ void CpuState::AddAdcSubSbcCmpImmToRegMem(const std::vector<uint8_t>& buffer, ui
 	}
 }
 
-void CpuState::AddAdcSubSbcCmpItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith)
+void CpuState::AddAdcSubSbcCmpItrmMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
 
 	std::string memory_address;
@@ -514,7 +515,7 @@ void CpuState::AddAdcSubSbcCmpItrmMem(const std::vector<uint8_t>& buffer, uint32
 	offset += 2;
 }
 
-void CpuState::AddAdcSubSbcCmpItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith)
+void CpuState::AddAdcSubSbcCmpItrmMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
@@ -536,7 +537,7 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp8(const std::vector<uint8_t>& buffer, u
 	offset += 3;
 }
 
-void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith)
+void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
@@ -558,7 +559,7 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const std::vector<uint8_t>& buffer, 
 	offset += 4;
 }
 
-void CpuState::AddAdcSubSbcCmpItrmReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t s, uint8_t w, uint8_t dst, uint8_t arith)
+void CpuState::AddAdcSubSbcCmpItrmReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
 	std::string reg_dest = dis_registers_[dst][w];
 	uint16_t imm = buffer[offset + 2];
@@ -588,7 +589,7 @@ void CpuState::AddAdcSubSbcCmpItrmReg(const std::vector<uint8_t>& buffer, uint32
 	offset += 2;
 }
 
-void CpuState::AddImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w)
+void CpuState::AddImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w)
 {
 	uint16_t imm = buffer[offset + 1];
 	if (w == 1)
@@ -604,7 +605,7 @@ void CpuState::AddImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	offset += 1 + w;
 }
 
-void CpuState::SubRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w)
+void CpuState::SubRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w)
 {
 	uint8_t modrm = buffer[offset + 1];
 	uint8_t mod = (modrm & 0xC0) >> 6;
@@ -630,7 +631,7 @@ void CpuState::SubRegMemWithRegToEither(const std::vector<uint8_t>& buffer, uint
 	}
 }
 
-void CpuState::SubRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::SubRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
@@ -655,7 +656,7 @@ void CpuState::SubRmwrtwMem(const std::vector<uint8_t>& buffer, uint32_t& offset
 	offset++;
 }
 
-void CpuState::SubRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::SubRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
@@ -671,7 +672,7 @@ void CpuState::SubRmwrtwMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& o
 	offset += 2;
 }
 
-void CpuState::SubRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::SubRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
@@ -687,7 +688,7 @@ void CpuState::SubRmwrtwMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& 
 	offset += 3;
 }
 
-void CpuState::SubRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offset)
+void CpuState::SubRmwrtwReg(const uint8_t src, const uint8_t dst, const uint8_t w, uint32_t& offset)
 {
 	std::string reg_source = dis_registers_[src][w];
 	std::string reg_dest = dis_registers_[dst][w];
@@ -698,7 +699,7 @@ void CpuState::SubRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w, uint32_t& offse
 	offset++;
 }
 
-void CpuState::SubImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t w)
+void CpuState::SubImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t w)
 {
 	uint16_t imm = buffer[offset + 1];
 	if (w == 1)
@@ -714,7 +715,7 @@ void CpuState::SubImmToAcc(const std::vector<uint8_t>& buffer, uint32_t& offset,
 	offset += 1 + w;
 }
 
-void CpuState::CmpRegMemAndReg(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w)
+void CpuState::CmpRegMemAndReg(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w)
 {
 	uint8_t modrm = buffer[offset + 1];
 	uint8_t mod = (modrm & 0xC0) >> 6;
@@ -740,7 +741,7 @@ void CpuState::CmpRegMemAndReg(const std::vector<uint8_t>& buffer, uint32_t& off
 	}
 }
 
-void CpuState::CmpRmarMem(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::CmpRmarMem(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
@@ -765,7 +766,7 @@ void CpuState::CmpRmarMem(const std::vector<uint8_t>& buffer, uint32_t& offset, 
 	offset++;
 }
 
-void CpuState::CmpRmarMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::CmpRmarMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
@@ -781,7 +782,7 @@ void CpuState::CmpRmarMemDisp8(const std::vector<uint8_t>& buffer, uint32_t& off
 	offset += 2;
 }
 
-void CpuState::CmpRmarMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, uint8_t d, uint8_t w, uint8_t src, uint8_t dst)
+void CpuState::CmpRmarMemDisp16(const std::vector<uint8_t>& buffer, uint32_t& offset, const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
