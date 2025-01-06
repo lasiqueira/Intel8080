@@ -39,21 +39,22 @@ void read_file(const std::string_view filename, std::vector<uint8_t> &buffer)
 
 int main(int argc, char* argv[])
 {
-	//TODO move offset to CpuState?
 	//TODO move buffer to CpuState?
 
 	std::string filename = argv[1];
-	uint32_t offset = 0;
+	
 	//init
 	std::vector<uint8_t> buffer;
 	read_file(filename, buffer);	
 	auto cpu_state = CpuState();
 
-	while (offset < buffer.size())
+	while (cpu_state.GetIp() < buffer.size())
 	{
-		cpu_state.DecodeInstruction(buffer, offset);
+		cpu_state.DecodeInstruction(buffer);
 	}
+
 	cpu_state.PrintRegisters();
 	cpu_state.PrintFlags();
+	
 	return 0;
 }
