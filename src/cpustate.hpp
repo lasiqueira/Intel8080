@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <array>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <memory>
 
 struct Flags
 {
@@ -36,7 +36,7 @@ private:
 	//segment registers CS, DS, SS, ES
 	std::array<uint16_t, 4> segment_registers_;
 
-	std::array<uint8_t, 0xF4240> memory_; //1MB of memory
+	std::unique_ptr<std::array<uint8_t, 0xF4240>> memory_; //1MB of memory
 	//disassembler helper arrays
 
 	std::array<std::array<std::string, 2>, 8> dis_registers_ =
@@ -211,7 +211,7 @@ public:
 	void PrintRegisters() const;
 	void PrintFlags() const;
 	void DisassembleInstruction(const std::string_view instruction);
-	void DecodeInstruction();
+	uint8_t DecodeInstruction();
 
     std::array<uint8_t, 0xF4240>& GetMemory();
 	uint16_t GetIp() const;

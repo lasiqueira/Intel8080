@@ -37,18 +37,17 @@ uint32_t read_file(const std::string_view file_name, std::array<uint8_t, 0xF4240
 
 int main(int argc, char* argv[])
 {
-	//TODO move buffer to CpuState?
-
 	std::string file_name = argv[1];
 	
 	//init
 	auto cpu_state = CpuState();
-	std::vector<uint8_t> buffer;
     auto file_size = read_file(file_name, cpu_state.GetMemory());
 
-	while (cpu_state.GetIp() < file_size)
+	//TODO find a way to stop if it goes to un
+	uint8_t stop = 0;
+	while (stop != 1)
 	{
-		cpu_state.DecodeInstruction();
+		stop = cpu_state.DecodeInstruction();
 	}
 
 	cpu_state.PrintRegisters();

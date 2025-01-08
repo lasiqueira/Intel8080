@@ -10,7 +10,8 @@ CpuState::CpuState()
 	ip_ = 0;
 	flags_ = { 0 };
 	segment_registers_.fill(0);
-	memory_.fill(0);
+	memory_ = std::make_unique<std::array<uint8_t, 0xF4240>>();
+	memory_->fill(-1);
 }
 
 CpuState::~CpuState()
@@ -52,12 +53,12 @@ uint16_t CpuState::GetIp() const
 
 std::array<uint8_t, 0xF4240>& CpuState::GetMemory() 
 {
-	return memory_;
+	return *memory_;
 }
 
-void CpuState::DecodeInstruction()
+uint8_t CpuState::DecodeInstruction()
 {
-	uint8_t opcode = memory_[ip_];
+	uint8_t opcode = memory_->at(ip_);
 	switch (opcode)
 	{
 	case 0x88: MovRegMemToFromReg(0, 0); break;
@@ -128,8 +129,9 @@ void CpuState::DecodeInstruction()
 	case 0xE1: LoopzLoope(); break;
 	case 0xE0: LoopnzLoopne(); break;
 	case 0xE3: Jcxz(); break;
-
-	default: std::cout << "Opcode not implemented:b0=0x" << std::hex << +opcode << std::endl; exit(1);
+	//TODO implement all opcodes
+	//default: std::cout << "Opcode not implemented:b0=0x" << std::hex << +opcode << std::endl; return 1;
+	default: return 1;
 	}
 	ip_++;
 }
@@ -161,7 +163,7 @@ bool CpuState::CheckParity(const uint16_t val) const
 //MOV Register/memory to/from register
 void CpuState::MovRegMemToFromReg(const uint8_t d, const uint8_t w)
 {
-	uint8_t modrm = memory_[ip_ + 1];
+	uint8_t modrm = memory_->at(ip_ + 1);
 	uint8_t mod = (modrm & 0xC0) >> 6;
 	uint8_t src;
 	uint8_t dst;
@@ -191,7 +193,7 @@ void CpuState::MovRmtfgMem(const uint8_t d, const uint8_t w, const uint8_t src, 
 	std::string memory_address;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
 	{
-		uint16_t imm = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+		uint16_t imm = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 		memory_address = std::to_string(imm);
 		ip_ += 2;
 	}
@@ -215,7 +217,7 @@ void CpuState::MovRmtfgMemDisp8(const uint8_t d, const uint8_t w, const uint8_t 
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint8_t disp = memory_[ip_ + 2];
+	uint8_t disp = memory_->at(ip_ + 2);
 	if (d == 0)
 	{
 		DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -231,7 +233,7 @@ void CpuState::MovRmtfgMemDisp16(const uint8_t d, const uint8_t w, const uint8_t
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint16_t disp = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+	uint16_t disp = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 	if (d == 0)
 	{
 		DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -284,7 +286,7 @@ void CpuState::MovRmtfgReg(const uint8_t src, const uint8_t dst, const uint8_t w
 
 void CpuState::MovImmToRegMem(const uint8_t w)
 {
-	uint8_t modrm = memory_[ip_ + 1];
+	uint8_t modrm = memory_->at(ip_ + 1);
 	uint8_t mod = (modrm & 0xC0) >> 6;
 	uint8_t dst = modrm & 0x07;
 	switch (mod)
@@ -299,7 +301,7 @@ void CpuState::MovImmToRegMem(const uint8_t w)
 
 void CpuState::MovItrmMem(const uint8_t w, const uint8_t dst)
 {
-	uint16_t imm = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+	uint16_t imm = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 	std::string memory_address = std::to_string(imm);
 	std::string reg = dis_registers_[dst][w];
 	DisassembleInstruction("MOV [" + memory_address + "], " + reg);
@@ -310,7 +312,7 @@ void CpuState::MovItrmMemDisp8(const uint8_t w, const uint8_t dst)
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
-	uint8_t disp = memory_[ip_ + 2];
+	uint8_t disp = memory_->at(ip_ + 2);
 	DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
 	ip_ += 2;
 }
@@ -319,7 +321,7 @@ void CpuState::MovItrmMemDisp16(const uint8_t w, const uint8_t dst)
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
-	uint16_t disp = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+	uint16_t disp = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 	DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
 	ip_ += 3;
 }
@@ -334,10 +336,10 @@ void CpuState::MovItrmReg(const uint8_t dst, const uint8_t w)
 
 void CpuState::MovImmToReg(const uint8_t w, const uint8_t reg)
 {
-	uint16_t imm = memory_[ip_ + 1];
+	uint16_t imm = memory_->at(ip_ + 1);
 	if (w == 1)
 	{
-		imm |= memory_[ip_ + 2] << 8;
+		imm |= memory_->at(ip_ + 2) << 8;
 		registers_[reg] = imm;
 	}
 	else 
@@ -362,10 +364,10 @@ void CpuState::MovImmToReg(const uint8_t w, const uint8_t reg)
 
 void CpuState::MovMemToAcc(const uint8_t w)
 {
-	uint16_t imm = memory_[ip_ + 1];
+	uint16_t imm = memory_->at(ip_ + 1);
 	if (w == 1)
 	{
-		imm |= memory_[ip_ + 2] << 8;
+		imm |= memory_->at(ip_ + 2) << 8;
 	}
 	DisassembleInstruction("MOV " + dis_registers_[0][w] + ", [" + std::to_string(imm) + "]");
 	ip_ += 1 + w;
@@ -373,10 +375,10 @@ void CpuState::MovMemToAcc(const uint8_t w)
 
 void CpuState::MovAccToMem(const uint8_t w)
 {
-	uint16_t imm = memory_[ip_ + 1];
+	uint16_t imm = memory_->at(ip_ + 1);
 	if (w == 1)
 	{
-		imm |= memory_[ip_ + 2] << 8;
+		imm |= memory_->at(ip_ + 2) << 8;
 	}
 	DisassembleInstruction("MOV [" + std::to_string(imm) + "], " + dis_registers_[0][w]);
 	ip_ += 1 + w;
@@ -384,7 +386,7 @@ void CpuState::MovAccToMem(const uint8_t w)
 
 void CpuState::AddRegMemWithRegToEither(const uint8_t d, const uint8_t w)
 {
-	uint8_t modrm = memory_[ip_ + 1];
+	uint8_t modrm = memory_->at(ip_ + 1);
 	uint8_t mod = (modrm & 0xC0) >> 6;
 	uint8_t src;
 	uint8_t dst;
@@ -414,7 +416,7 @@ void CpuState::AddRmwrtwMem(const uint8_t d, const uint8_t w, const uint8_t src,
 	//immediate memory address to register
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
 	{
-		uint16_t imm = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+		uint16_t imm = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 		memory_address = std::to_string(imm);
 		ip_ += 2;
 	}
@@ -439,7 +441,7 @@ void CpuState::AddRmwrtwMemDisp8(const uint8_t d, const uint8_t w, const uint8_t
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint8_t disp = memory_[ip_ + 2];
+	uint8_t disp = memory_->at(ip_ + 2);
 	if (d == 0)
 	{
 		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -456,7 +458,7 @@ void CpuState::AddRmwrtwMemDisp16(const uint8_t d, const uint8_t w, const uint8_
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint16_t disp = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+	uint16_t disp = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 	if (d == 0)
 	{
 		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -481,8 +483,8 @@ void CpuState::AddRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w)
 
 void CpuState::AddAdcSubSbcCmpImmToRegMem(const uint8_t s, const uint8_t w)
 {
-	uint8_t opcode = memory_[ip_];
-	uint8_t modrm = memory_[ip_ + 1];
+	uint8_t opcode = memory_->at(ip_);
+	uint8_t modrm = memory_->at(ip_ + 1);
 	uint8_t mod = (modrm & 0xC0) >> 6;
 	uint8_t arith = (modrm & 0x38) >> 3;
 	uint8_t dst = modrm & 0x07;
@@ -503,7 +505,7 @@ void CpuState::AddAdcSubSbcCmpItrmMem(const uint8_t s, const uint8_t w, const ui
 
 	if (dst == 0x06)
 	{
-		uint16_t imm_adr = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+		uint16_t imm_adr = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 		memory_address = std::to_string(imm_adr);
 		ip_ += 2;
 	}
@@ -511,11 +513,11 @@ void CpuState::AddAdcSubSbcCmpItrmMem(const uint8_t s, const uint8_t w, const ui
 	{
 		memory_address = dis_memory_addresses_[dst];
 	}
-	uint16_t imm = memory_[ip_ + 2];
+	uint16_t imm = memory_->at(ip_ + 2);
 
 	if (w == 1 && s == 0)
 	{
-		imm |= memory_[ip_ + 3] << 8;
+		imm |= memory_->at(ip_ + 3) << 8;
 		ip_ += 1;
 	}
 	if (s == 1)
@@ -533,11 +535,11 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp8(const uint8_t s, const uint8_t w, con
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
-	uint8_t disp = memory_[ip_ + 2];
-	uint16_t imm = memory_[ip_ + 3];
+	uint8_t disp = memory_->at(ip_ + 2);
+	uint16_t imm = memory_->at(ip_ + 3);
 	if (w == 1 && s == 0)
 	{
-		imm |= memory_[ip_ + 4] << 8;
+		imm |= memory_->at(ip_ + 4) << 8;
 		ip_ += 1;
 	}
 	if (s == 1)
@@ -555,11 +557,11 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const uint8_t s, const uint8_t w, co
 {
 	std::string memory_address = dis_memory_addresses_[dst];
 	std::string reg = dis_registers_[dst][w];
-	uint16_t disp = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
-	uint16_t imm = memory_[ip_ + 4];
+	uint16_t disp = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
+	uint16_t imm = memory_->at(ip_ + 4);
 	if (w == 1 && s == 0)
 	{
-		imm |= memory_[ip_ + 5] << 8;
+		imm |= memory_->at(ip_ + 5) << 8;
 		ip_ += 1;
 	}
 	if (s == 1)
@@ -576,10 +578,10 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const uint8_t s, const uint8_t w, co
 void CpuState::AddAdcSubSbcCmpItrmReg(const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
 	std::string reg_dest = dis_registers_[dst][w];
-	uint16_t imm = memory_[ip_ + 2];
+	uint16_t imm = memory_->at(ip_ + 2);
 	if (w == 1 && s == 0)
 	{
-		imm |= memory_[ip_ + 3] << 8;
+		imm |= memory_->at(ip_ + 3) << 8;
 		ip_ += 1;
 	}
 
@@ -605,10 +607,10 @@ void CpuState::AddAdcSubSbcCmpItrmReg(const uint8_t s, const uint8_t w, const ui
 
 void CpuState::AddImmToAcc(const uint8_t w)
 {
-	uint16_t imm = memory_[ip_ + 1];
+	uint16_t imm = memory_->at(ip_ + 1);
 	if (w == 1)
 	{
-		imm |= memory_[ip_ + 2] << 8;
+		imm |= memory_->at(ip_ + 2) << 8;
 	}
 
 	//TODO check if low high acc needs to be implemented. Even the disassemble might need to be fixed as I'd be considering only the low;
@@ -621,7 +623,7 @@ void CpuState::AddImmToAcc(const uint8_t w)
 
 void CpuState::SubRegMemWithRegToEither(const uint8_t d, const uint8_t w)
 {
-	uint8_t modrm = memory_[ip_ + 1];
+	uint8_t modrm = memory_->at(ip_ + 1);
 	uint8_t mod = (modrm & 0xC0) >> 6;
 	uint8_t src;
 	uint8_t dst;
@@ -650,7 +652,7 @@ void CpuState::SubRmwrtwMem(const uint8_t d, const uint8_t w, const uint8_t src,
 	std::string memory_address;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
 	{
-		uint16_t imm = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+		uint16_t imm = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 		memory_address = std::to_string(imm);
 		ip_ += 2;
 	}
@@ -674,7 +676,7 @@ void CpuState::SubRmwrtwMemDisp8(const uint8_t d, const uint8_t w, const uint8_t
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint8_t disp = memory_[ip_ + 2];
+	uint8_t disp = memory_->at(ip_ + 2);
 	if (d == 0)
 	{
 		DisassembleInstruction("SUB [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -690,7 +692,7 @@ void CpuState::SubRmwrtwMemDisp16(const uint8_t d, const uint8_t w, const uint8_
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint16_t disp = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+	uint16_t disp = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 	if (d == 0)
 	{
 		DisassembleInstruction("SUB [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -715,10 +717,10 @@ void CpuState::SubRmwrtwReg(const uint8_t src, const uint8_t dst, const uint8_t 
 
 void CpuState::SubImmToAcc(const uint8_t w)
 {
-	uint16_t imm = memory_[ip_ + 1];
+	uint16_t imm = memory_->at(ip_ + 1);
 	if (w == 1)
 	{
-		imm |= memory_[ip_ + 2] << 8;
+		imm |= memory_->at(ip_ + 2) << 8;
 	}
 	
 	//TODO check if low high acc needs to be implemented. Even the disassemble might need to be fixed as I'd be considering only the low;
@@ -731,7 +733,7 @@ void CpuState::SubImmToAcc(const uint8_t w)
 
 void CpuState::CmpRegMemAndReg(const uint8_t d, const uint8_t w)
 {
-	uint8_t modrm = memory_[ip_ + 1];
+	uint8_t modrm = memory_->at(ip_ + 1);
 	uint8_t mod = (modrm & 0xC0) >> 6;
 	uint8_t src;
 	uint8_t dst;
@@ -760,7 +762,7 @@ void CpuState::CmpRmarMem(const uint8_t d, const uint8_t w, const uint8_t src, c
 	std::string memory_address;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
 	{
-		uint16_t imm = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+		uint16_t imm = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 		memory_address = std::to_string(imm);
 		ip_ += 2;
 	}
@@ -784,7 +786,7 @@ void CpuState::CmpRmarMemDisp8(const uint8_t d, const uint8_t w, const uint8_t s
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint8_t disp = memory_[ip_ + 2];
+	uint8_t disp = memory_->at(ip_ + 2);
 	if (d == 0)
 	{
 		DisassembleInstruction("CMP [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -800,7 +802,7 @@ void CpuState::CmpRmarMemDisp16(const uint8_t d, const uint8_t w, const uint8_t 
 {
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
-	uint16_t disp = memory_[ip_ + 2] | memory_[ip_ + 3] << 8;
+	uint16_t disp = memory_->at(ip_ + 2) | memory_->at(ip_ + 3) << 8;
 	if (d == 0)
 	{
 		DisassembleInstruction("CMP [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
@@ -824,10 +826,10 @@ void CpuState::CmpRmarReg(uint8_t src, uint8_t dst, uint8_t w)
 
 void CpuState::CmpImmWithAcc(uint8_t w)
 {
-	uint16_t imm = memory_[ip_ + 1];
+	uint16_t imm = memory_->at(ip_ + 1);
 	if (w == 1)
 	{
-		imm |= memory_[ip_ + 2] << 8;
+		imm |= memory_->at(ip_ + 2) << 8;
 	}
 	//TODO check if low high acc needs to be implemented. Even the disassemble might need to be fixed as I'd be considering only the low;
 	SetFlags(registers_[0] - imm);
@@ -837,7 +839,7 @@ void CpuState::CmpImmWithAcc(uint8_t w)
 
 void CpuState::JneJnz()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNE " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.zero_ == 0)
 	{
@@ -849,7 +851,7 @@ void CpuState::JneJnz()
 
 void CpuState::JeJz()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JE " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.zero_ == 1)
 	{
@@ -861,7 +863,7 @@ void CpuState::JeJz()
 
 void CpuState::JlJnge()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JL " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.sign_ != flags_.overflow_)
 	{
@@ -873,7 +875,7 @@ void CpuState::JlJnge()
 
 void CpuState::JleJng()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JLE " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.zero_ == 1 || flags_.sign_ != flags_.overflow_)
 	{
@@ -885,7 +887,7 @@ void CpuState::JleJng()
 
 void CpuState::JbJnae()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JB " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.carry_ == 1)
 	{
@@ -897,7 +899,7 @@ void CpuState::JbJnae()
 
 void CpuState::JbeJna()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JBE " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.zero_ == 1 || flags_.carry_ == 1)
 	{
@@ -909,7 +911,7 @@ void CpuState::JbeJna()
 
 void CpuState::JpJpe()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JP " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.parity_ == 1)
 	{
@@ -921,7 +923,7 @@ void CpuState::JpJpe()
 
 void CpuState::JnpJpo()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNP " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.parity_ == 0)
 	{
@@ -933,7 +935,7 @@ void CpuState::JnpJpo()
 
 void CpuState::Jo()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JO " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.overflow_ == 1)
 	{
@@ -945,7 +947,7 @@ void CpuState::Jo()
 
 void CpuState::Js()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JS " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.sign_ == 1)
 	{
@@ -957,7 +959,7 @@ void CpuState::Js()
 
 void CpuState::JnlJge()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNL " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.sign_ == flags_.overflow_)
 	{
@@ -969,7 +971,7 @@ void CpuState::JnlJge()
 
 void CpuState::JnleJg()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNLE " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.zero_ == 0 && flags_.sign_ == flags_.overflow_)
 	{
@@ -981,7 +983,7 @@ void CpuState::JnleJg()
 
 void CpuState::JnbJae()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNB " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.carry_ == 0)
 	{
@@ -993,7 +995,7 @@ void CpuState::JnbJae()
 
 void CpuState::JnbeJa()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNBE " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.zero_ == 0 && flags_.carry_ == 0)
 	{
@@ -1005,7 +1007,7 @@ void CpuState::JnbeJa()
 
 void CpuState::Jno()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNO " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.overflow_ == 0)
 	{
@@ -1017,7 +1019,7 @@ void CpuState::Jno()
 
 void CpuState::Jns()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JNS " + std::to_string(static_cast<int8_t>(imm)));
 	if (flags_.sign_ == 0)
 	{
@@ -1029,28 +1031,28 @@ void CpuState::Jns()
 
 void CpuState::Loop()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("LOOP " + std::to_string(static_cast<int8_t>(imm)));
 	ip_++;
 }
 
 void CpuState::LoopzLoope()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("LOOPZ " + std::to_string(static_cast<int8_t>(imm)));
 	ip_++;
 }
 
 void CpuState::LoopnzLoopne()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("LOOPNZ " + std::to_string(static_cast<int8_t>(imm)));
 	ip_++;
 }
 
 void CpuState::Jcxz()
 {
-	uint8_t imm = memory_[ip_ + 1];
+	uint8_t imm = memory_->at(ip_ + 1);
 	DisassembleInstruction("JCXZ " + std::to_string(static_cast<int8_t>(imm)));
 	ip_++;
 }
