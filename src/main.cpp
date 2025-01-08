@@ -8,8 +8,6 @@
 #include <string_view>
 #include "cpustate.hpp"
 
-//TODO deduplicate identical functions (ADD, MOV, SUB, CMP, etc) by adding OP as a parameter (wait until simulation starts perhaps?)
-
 //declarations
 ////helpers
 
@@ -40,8 +38,8 @@ int main(int argc, char* argv[])
 	std::string file_name = argv[1];
 	
 	//init
-	auto cpu_state = CpuState();
-    auto file_size = read_file(file_name, cpu_state.GetMemory());
+	auto cpu_state = CpuState(); 
+	auto file_size = read_file(file_name, cpu_state.GetMemory());
 
 	uint8_t stop = 0;
 	while (stop != 1)

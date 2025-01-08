@@ -160,6 +160,9 @@ bool CpuState::CheckParity(const uint16_t val) const
 	}
 	return count % 2 == 0;
 }
+
+//TODO deduplicate identical functions (ADD, MOV, SUB, CMP, etc) by adding OP as a parameter (wait until simulation starts perhaps?)
+
 //MOV Register/memory to/from register
 void CpuState::MovRegMemToFromReg(const uint8_t d, const uint8_t w)
 {
