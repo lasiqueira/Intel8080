@@ -43,7 +43,6 @@ int main(int argc, char* argv[])
 	auto cpu_state = CpuState();
     auto file_size = read_file(file_name, cpu_state.GetMemory());
 
-	//TODO find a way to stop if it goes to un
 	uint8_t stop = 0;
 	while (stop != 1)
 	{
