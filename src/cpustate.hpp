@@ -53,6 +53,13 @@ private:
 		}
 	};
 
+	std::array<std::string, 4> dis_segment_registers_ =
+	{
+		"CS",
+		"DS",
+		"SS",
+		"ES"
+	};
 
 	std::array<std::string, 8> dis_memory_addresses_ =
 	{
@@ -77,6 +84,7 @@ private:
 	
 	void SetFlags(const uint16_t val);
 	bool CheckParity(const uint16_t val) const;
+
 
 	//ops
 	////MOV Register/memory to/from register
@@ -209,10 +217,11 @@ public:
 	CpuState();
 	~CpuState();
 	void PrintRegisters() const;
+	void PrintSegmentRegisters() const;
 	void PrintFlags() const;
 	void DisassembleInstruction(const std::string_view instruction);
 	uint8_t DecodeInstruction();
 
     std::array<uint8_t, 0xF4240>& GetMemory();
-	uint16_t GetIp() const;
+	uint32_t GetCsIp() const;
 };

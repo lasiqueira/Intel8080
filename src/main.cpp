@@ -48,6 +48,7 @@ int main(int argc, char* argv[])
 	}
 
 	cpu_state.PrintRegisters();
+	cpu_state.PrintSegmentRegisters();
 	cpu_state.PrintFlags();
 	
 	return 0;
