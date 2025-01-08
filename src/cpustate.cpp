@@ -58,6 +58,10 @@ std::array<uint8_t, 0xF4240>& CpuState::GetMemory()
 
 uint8_t CpuState::DecodeInstruction()
 {
+	if (ip_ >= memory_->size())
+	{
+		return 1;
+	}
 	uint8_t opcode = memory_->at(ip_);
 	switch (opcode)
 	{
