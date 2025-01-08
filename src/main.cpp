@@ -13,44 +13,42 @@
 //declarations
 ////helpers
 
-void read_file(const std::string_view filename, std::vector<uint8_t> &buffer);
+uint32_t read_file(const std::string_view filename, std::array<uint8_t, 0xF4240> &buffer);
 
 
 
 //implementations
 
-void read_file(const std::string_view filename, std::vector<uint8_t> &buffer)
+uint32_t read_file(const std::string_view file_name, std::array<uint8_t, 0xF4240> &buffer)
 {
-	std::ifstream file(filename.data(), std::ios::in | std::ios::binary);
+	std::ifstream file(file_name.data(), std::ios::in | std::ios::binary);
 	file.unsetf(std::ios::skipws);
 	std::streampos fileSize;
 	file.seekg(0, std::ios::end);
-	fileSize = file.tellg();
+	auto file_size = file.tellg();
 	file.seekg(0, std::ios::beg);
 
-	buffer.reserve(fileSize);
-
-	buffer.insert(buffer.begin(),
-		std::istream_iterator<uint8_t>(file),
-		std::istream_iterator<uint8_t>());
+	file.read(reinterpret_cast<char*>(buffer.data()), file_size);
 
 	file.close();
+
+	return static_cast<uint32_t>(file_size);
 }
 
 int main(int argc, char* argv[])
 {
 	//TODO move buffer to CpuState?
 
-	std::string filename = argv[1];
+	std::string file_name = argv[1];
 	
 	//init
-	std::vector<uint8_t> buffer;
-	read_file(filename, buffer);	
 	auto cpu_state = CpuState();
+	std::vector<uint8_t> buffer;
+    auto file_size = read_file(file_name, cpu_state.GetMemory());
 
-	while (cpu_state.GetIp() < buffer.size())
+	while (cpu_state.GetIp() < file_size)
 	{
-		cpu_state.DecodeInstruction(buffer);
+		cpu_state.DecodeInstruction();
 	}
 
 	cpu_state.PrintRegisters();
