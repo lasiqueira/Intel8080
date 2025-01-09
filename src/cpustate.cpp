@@ -58,7 +58,8 @@ void CpuState::DisassembleInstruction(const std::string_view instruction)
 uint32_t CpuState::GetCsIp() const
 {	
 	//0 == CS
-	return (segment_registers_[0] >> 4) | ip_;
+	uint32_t cs = static_cast<uint32_t>(segment_registers_[0]) << 4;
+	return cs + ip_;
 }
 
 std::array<uint8_t, 0xF4240>& CpuState::GetMemory() 
