@@ -62,9 +62,26 @@ uint32_t CpuState::GetCsIp() const
 	return cs + ip_;
 }
 
-std::array<uint8_t, 0xF4240>& CpuState::GetMemory() 
+std::array<uint8_t, 0xF4240>& CpuState::GetMemory()
 {
 	return *memory_;
+}
+
+uint32_t CpuState::GetMemoryAddress(const uint8_t reg) const
+{
+	//TODO understand how to use the segment registers to get the memory address
+	switch (reg)
+	{
+	case 0x00: return static_cast<uint32_t>(registers_[3] + registers_[6]); //BX + SI
+	case 0x01: return static_cast<uint32_t>(registers_[3] + registers_[7]); //BX + DI
+	case 0x02: return static_cast<uint32_t>(registers_[5] + registers_[6]); //BP + SI
+	case 0x03: return static_cast<uint32_t>(registers_[5] + registers_[7]); //BP + DI
+	case 0x04: return static_cast<uint32_t>(registers_[6]); //SI
+	case 0x05: return static_cast<uint32_t>(registers_[7]); //DI
+	case 0x06: return static_cast<uint32_t>(registers_[5]); //BP
+	case 0x07: return static_cast<uint32_t>(registers_[3]); //BX
+	default: return 0;
+	}
 }
 
 uint8_t CpuState::DecodeInstruction()
@@ -208,57 +225,169 @@ void CpuState::MovRegMemToFromReg(const uint8_t d, const uint8_t w)
 
 void CpuState::MovRmtfgMem(const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
-	std::string memory_address;
+	std::string memory_address_name;
+	uint32_t memory_address;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
 	{
 		uint16_t imm = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
-		memory_address = std::to_string(imm);
+		memory_address_name = std::to_string(imm);
+		memory_address = imm;
 		ip_ += 2;
 	}
 	else
 	{
-		memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
+		memory_address_name = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
+		memory_address = GetMemoryAddress(d == 0 ? dst : src);
 	}
-	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
+	std::string reg_name = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	if (d == 0)
 	{
-		DisassembleInstruction("MOV [" + memory_address + "], " + reg);
+		if (w == 1) 
+		{
+			memory_->at(memory_address) = static_cast<uint8_t>(registers_[src] & 0XFF);
+			memory_->at(memory_address+1) = static_cast<uint8_t>((registers_[src] >> 8) & 0xFF);
+		}
+		else
+		{
+			if (src < 4)
+			{
+				memory_->at(memory_address) = static_cast<uint8_t>(registers_[src] & 0XFF);
+			}
+			else
+			{
+				memory_->at(memory_address) = static_cast<uint8_t>((registers_[src % 4] >> 8) & 0xFF);
+			}
+		}
+		DisassembleInstruction("MOV [" + memory_address_name + "], " + reg_name);
 	}
 	else
 	{
-		DisassembleInstruction("MOV " + reg + ", [" + memory_address + "]");
+		if (w == 1)
+		{
+			registers_[dst] = memory_->at(memory_address) | memory_->at(memory_address + 1) << 8;
+		}
+		else
+		{
+			uint8_t val = memory_->at(memory_address);
+			if (dst < 4)
+			{
+				registers_[dst] &= 0xFF00;
+				registers_[dst] |= val;
+			}
+			else
+			{
+				registers_[dst % 4] &= 0x00FF;
+				registers_[dst % 4] |= (val << 8);
+			}
+		}
+		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "]");
 	}
 	ip_++;
 }
 
 void CpuState::MovRmtfgMemDisp8(const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
-	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
-	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
+	std::string memory_address_name = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
+	uint32_t memory_address = GetMemoryAddress(d == 0 ? dst : src);
+	
+	std::string reg_name = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
+	
 	uint8_t disp = memory_->at(GetCsIp() + 2);
+
 	if (d == 0)
-	{
-		DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+	{	
+		if (w == 1)
+		{
+			memory_->at(memory_address + disp) = static_cast<uint8_t>(registers_[src] & 0XFF);
+			memory_->at(memory_address + disp + 1) = static_cast<uint8_t>((registers_[src] >> 8) & 0xFF);
+		}
+		else
+		{
+			if (src < 4)
+			{
+				memory_->at(memory_address + disp) = static_cast<uint8_t>(registers_[src] & 0XFF);
+			}
+			else
+			{
+				memory_->at(memory_address + disp) = static_cast<uint8_t>((registers_[src % 4] >> 8) & 0xFF);
+			}
+		}
+		DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + reg_name);
 	}
 	else
 	{
-		DisassembleInstruction("MOV " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		if (w == 1)
+		{
+			registers_[dst] = memory_->at(memory_address + disp) | memory_->at(memory_address + disp  + 1) << 8;
+		}
+		else
+		{
+			uint8_t val = memory_->at(memory_address + disp);
+			if (dst < 4)
+			{
+				registers_[dst] &= 0xFF00;
+				registers_[dst] |= val;
+			}
+			else
+			{
+				registers_[dst % 4] &= 0x00FF;
+				registers_[dst % 4] |= (val << 8);
+			}
+		}
+
+		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "+" + std::to_string(disp) + "]");
 	}
 	ip_ += 2;
 }
 
 void CpuState::MovRmtfgMemDisp16(const uint8_t d, const uint8_t w, const uint8_t src, const uint8_t dst)
 {
-	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
-	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
+	std::string memory_address_name = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
+	
+	uint32_t memory_address = GetMemoryAddress(d == 0 ? dst : src);
+	std::string reg_name = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	uint16_t disp = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
 	if (d == 0)
 	{
-		DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+		if (w == 1)
+		{
+			memory_->at(memory_address + disp) = static_cast<uint8_t>(registers_[src] & 0XFF);
+			memory_->at(memory_address + disp + 1) = static_cast<uint8_t>((registers_[src] >> 8) & 0xFF);
+		}
+		else
+		{
+			if (src < 4)
+			{
+				memory_->at(memory_address + disp) = static_cast<uint8_t>(registers_[src] & 0XFF);
+			}
+			else
+			{
+				memory_->at(memory_address + disp) = static_cast<uint8_t>((registers_[src % 4] >> 8) & 0xFF);
+			}
+		}
+		DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + reg_name);
 	}
 	else
 	{
-		DisassembleInstruction("MOV " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		if (w == 1)
+		{
+			registers_[dst] = memory_->at(memory_address + disp) | memory_->at(memory_address + disp + 1) << 8;
+		}
+		else
+		{
+			uint8_t val = memory_->at(memory_address + disp);
+			if (dst < 4)
+			{
+				registers_[dst] &= 0xFF00;
+				registers_[dst] |= val;
+			}
+			else
+			{
+				registers_[dst % 4] &= 0x00FF;
+				registers_[dst % 4] |= (val << 8);
+			}
+		}
+		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "+" + std::to_string(disp) + "]");
 	}
 	ip_ += 3;
 }
@@ -319,37 +448,101 @@ void CpuState::MovImmToRegMem(const uint8_t w)
 
 void CpuState::MovItrmMem(const uint8_t w, const uint8_t dst)
 {
-	uint16_t imm = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
-	std::string memory_address = std::to_string(imm);
-	std::string reg = dis_registers_[dst][w];
-	DisassembleInstruction("MOV [" + memory_address + "], " + reg);
-	ip_ += 2;
+	
+	std::string memory_address_name;
+	uint32_t memory_address;
+	if (dst == 0x06)
+	{
+		uint16_t imm = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
+		memory_address_name = std::to_string(imm);
+		memory_address = imm;
+		ip_ += 2;
+	}
+	else
+	{
+		memory_address_name = dis_memory_addresses_[dst];
+		memory_address = GetMemoryAddress(dst);
+	}
+	uint16_t imm = memory_->at(GetCsIp() + 2);
+	if (w == 1)
+	{
+		imm |= memory_->at(GetCsIp() + 3) << 8;
+		memory_->at(memory_address) = static_cast<uint8_t>(imm & 0xFF);
+		memory_->at(memory_address + 1) = static_cast<uint8_t>((imm >> 8) & 0xFF);
+	}
+	else
+	{
+		memory_->at(memory_address) = static_cast<uint8_t>(imm & 0xFF);
+	}
+	
+	DisassembleInstruction("MOV [" + memory_address_name + "], " + std::to_string(imm));
+	ip_ += 2 + w;
 }
 
 void CpuState::MovItrmMemDisp8(const uint8_t w, const uint8_t dst)
 {
-	std::string memory_address = dis_memory_addresses_[dst];
-	std::string reg = dis_registers_[dst][w];
+	std::string memory_address_name = dis_memory_addresses_[dst];
+	uint32_t memory_address = GetMemoryAddress(dst);
 	uint8_t disp = memory_->at(GetCsIp() + 2);
-	DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
-	ip_ += 2;
+	uint16_t imm = memory_->at(GetCsIp() + 3);
+	if (w == 1)
+	{
+		imm |= memory_->at(GetCsIp() + 4) << 8;
+		memory_->at(memory_address + disp) = static_cast<uint8_t>(imm & 0xFF);
+		memory_->at(memory_address + disp + 1) = static_cast<uint8_t>((imm >> 8) & 0xFF);
+	}
+	else
+	{
+		memory_->at(memory_address + disp) = static_cast<uint8_t>(imm & 0xFF);
+	}
+	DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + std::to_string(imm));
+	ip_ += 3 + w;
 }
 
 void CpuState::MovItrmMemDisp16(const uint8_t w, const uint8_t dst)
 {
-	std::string memory_address = dis_memory_addresses_[dst];
-	std::string reg = dis_registers_[dst][w];
+	std::string memory_address_name = dis_memory_addresses_[dst];
+	uint32_t memory_address = GetMemoryAddress(dst);
 	uint16_t disp = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
-	DisassembleInstruction("MOV [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
-	ip_ += 3;
+	uint16_t imm = memory_->at(GetCsIp() + 4);
+	if (w == 1)
+	{
+		imm |= memory_->at(GetCsIp() + 5) << 8;
+		memory_->at(memory_address + disp) = static_cast<uint8_t>(imm & 0xFF);
+		memory_->at(memory_address + disp + 1) = static_cast<uint8_t>((imm >> 8) & 0xFF);
+	}
+	else
+	{
+		memory_->at(memory_address + disp) = static_cast<uint8_t>(imm & 0xFF);
+	}
+	DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + std::to_string(imm));
+	ip_ += 4 + w;
 }
 
-void CpuState::MovItrmReg(const uint8_t dst, const uint8_t w)
+void CpuState::MovItrmReg( const uint8_t w, const uint8_t dst)
 {
-	std::string memory_address = dis_memory_addresses_[dst];
-	std::string reg = dis_registers_[dst][w];
-	DisassembleInstruction("MOV [" + memory_address + "], " + reg);
-	ip_++;
+	std::string reg_name = dis_registers_[dst][w];
+	uint16_t imm = memory_->at(GetCsIp() + 2);
+	if (w == 1)
+	{
+		imm |= memory_->at(GetCsIp() + 3) << 8;
+		registers_[dst] = imm;
+	}
+	else
+	{
+		if (dst < 4)
+		{
+			registers_[dst] &= 0xFF00;
+			registers_[dst] |= imm;
+		}
+		else
+		{
+			registers_[dst % 4] &= 0x00FF;
+			registers_[dst % 4] |= (imm << 8);
+		}
+	}
+	DisassembleInstruction("MOV " + reg_name + ", " + std::to_string(imm));
+	ip_+= 2 + w;
 }
 
 void CpuState::MovImmToReg(const uint8_t w, const uint8_t reg)
@@ -386,6 +579,12 @@ void CpuState::MovMemToAcc(const uint8_t w)
 	if (w == 1)
 	{
 		imm |= memory_->at(GetCsIp() + 2) << 8;
+		registers_[0] = imm;
+	}
+	else
+	{
+		// is it always the full register?
+		registers_[0] = imm;
 	}
 	DisassembleInstruction("MOV " + dis_registers_[0][w] + ", [" + std::to_string(imm) + "]");
 	ip_ += 1 + w;
@@ -397,6 +596,13 @@ void CpuState::MovAccToMem(const uint8_t w)
 	if (w == 1)
 	{
 		imm |= memory_->at(GetCsIp() + 2) << 8;
+		memory_->at(imm) = static_cast<uint8_t>(registers_[0] & 0xFF);
+		memory_->at(imm + 1) = static_cast<uint8_t>((registers_[0] >> 8) & 0xFF);
+	}
+	else
+	{
+		// is it always the full register?
+		memory_->at(imm) = static_cast<uint8_t>(registers_[0] & 0xFF);
 	}
 	DisassembleInstruction("MOV [" + std::to_string(imm) + "], " + dis_registers_[0][w]);
 	ip_ += 1 + w;

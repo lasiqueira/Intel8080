@@ -84,7 +84,7 @@ private:
 	
 	void SetFlags(const uint16_t val);
 	bool CheckParity(const uint16_t val) const;
-
+	uint32_t GetMemoryAddress(const uint8_t reg) const;
 
 	//ops
 	////MOV Register/memory to/from register
