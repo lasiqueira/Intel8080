@@ -73,6 +73,20 @@ private:
 		"BX"
 	};
 
+	std::array<std::array<uint8_t, 2>, 8> dis_memory_cycles_ =
+	{
+		{
+			{7, 11},
+			{8, 12},
+			{8, 12},
+			{7, 11},
+			{5, 9},
+			{5, 9},
+			{5, 9},
+			{5, 9}
+		}
+	};
+
 	std::unordered_map<uint8_t, std::string> dis_arithmetic_imm_reg_operations_ =
 	{
 		{0x00, "ADD"},
