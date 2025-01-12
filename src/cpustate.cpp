@@ -11,7 +11,7 @@ CpuState::CpuState()
 	flags_ = { 0 };
 	segment_registers_.fill(0);
 	memory_ = std::make_unique<std::array<uint8_t, 0xF4240>>();
-	memory_->fill(-1);
+	memory_->fill(0);
 }
 
 CpuState::~CpuState()
@@ -166,6 +166,7 @@ uint8_t CpuState::DecodeInstruction()
 	default: return 1;
 	}
 	ip_++;
+	return 0;
 }
 
 //ops
