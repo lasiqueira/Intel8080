@@ -675,24 +675,30 @@ void CpuState::AddRmwrtwMem(const uint8_t d, const uint8_t w, const uint8_t src,
 {
 	std::string memory_address;
 	//immediate memory address to register
+	uint8_t cycles = 0;
 	if ((d == 0 && dst == 0x06) || (d == 1 && src == 0x06))
 	{
 		uint16_t imm = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
 		memory_address = std::to_string(imm);
 		ip_ += 2;
+		cycles += 6;
 	}
 	else
 	{
 		memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
+		cycles = d == 0 ? dis_memory_cycles_[dst][0] : dis_memory_cycles_[src][0];
+
 	}
 
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	if (d == 0)
 	{
+		cycles += 16;
 		DisassembleInstruction("ADD [" + memory_address + "], " + reg, 0);
 	}
 	else
 	{
+		cycles += 9;
 		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "]", 0);
 	}
 	ip_++;
@@ -703,14 +709,18 @@ void CpuState::AddRmwrtwMemDisp8(const uint8_t d, const uint8_t w, const uint8_t
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	uint8_t disp = memory_->at(GetCsIp() + 2);
+	uint8_t cycles = d == 0 ? dis_memory_cycles_[dst][disp>0] : dis_memory_cycles_[src][disp>0];
+
 	if (d == 0)
 	{
-		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
+		cycles += 16;
+		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg, cycles);
 		
 	}
 	else
 	{
-		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
+		cycles += 9;
+		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", cycles);
 	}
 	ip_ += 2;
 }
@@ -720,25 +730,29 @@ void CpuState::AddRmwrtwMemDisp16(const uint8_t d, const uint8_t w, const uint8_
 	std::string memory_address = d == 0 ? dis_memory_addresses_[dst] : dis_memory_addresses_[src];
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	uint16_t disp = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
+	uint8_t cycles = d == 0 ? dis_memory_cycles_[dst][disp>0] : dis_memory_cycles_[src][disp>0];
 	if (d == 0)
 	{
-		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
+		cycles += 16;
+		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg, cycles);
 	}
 	else
 	{
-		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
+		cycles += 9;
+		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", cycles);
 	}
 	ip_ += 3;
 }
 
 void CpuState::AddRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w)
 {
+	uint8_t cycles = 3;
 	std::string reg_source = dis_registers_[src][w];
 	std::string reg_dest = dis_registers_[dst][w];
 	//TODO check how low/high byte registers are done for arithmetic operations
 	registers_[dst] += registers_[src];
 	SetFlags(registers_[dst]);
-	DisassembleInstruction("ADD " + reg_dest + ", " + reg_source, 0);
+	DisassembleInstruction("ADD " + reg_dest + ", " + reg_source, cycles);
 	ip_++;
 }
 
@@ -763,16 +777,19 @@ void CpuState::AddAdcSubSbcCmpItrmMem(const uint8_t s, const uint8_t w, const ui
 {
 
 	std::string memory_address;
-
+	uint8_t cycles = 17;
 	if (dst == 0x06)
 	{
 		uint16_t imm_adr = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
 		memory_address = std::to_string(imm_adr);
 		ip_ += 2;
+		cycles += 6;
 	}
 	else
 	{
 		memory_address = dis_memory_addresses_[dst];
+		uint8_t memory_address_cycles = dis_memory_cycles_[dst][0];
+		cycles += memory_address_cycles;
 	}
 	uint16_t imm = memory_->at(GetCsIp() + 2);
 
@@ -783,21 +800,25 @@ void CpuState::AddAdcSubSbcCmpItrmMem(const uint8_t s, const uint8_t w, const ui
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(static_cast<int16_t>(imm)), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(static_cast<int16_t>(imm)), cycles);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(imm), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(imm), cycles);
 	}
 	ip_ += 2;
 }
 
 void CpuState::AddAdcSubSbcCmpItrmMemDisp8(const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
+	uint8_t cycles = 17;
 	std::string memory_address = dis_memory_addresses_[dst];
-	std::string reg = dis_registers_[dst][w];
 	uint8_t disp = memory_->at(GetCsIp() + 2);
 	uint16_t imm = memory_->at(GetCsIp() + 3);
+
+	uint8_t memory_address_cycles = dis_memory_cycles_[dst][disp>0];
+	cycles += memory_address_cycles;
+
 	if (w == 1 && s == 0)
 	{
 		imm |= memory_->at(GetCsIp() + 4) << 8;
@@ -805,21 +826,25 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp8(const uint8_t s, const uint8_t w, con
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)), cycles);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm), cycles);
 	}
 	ip_ += 3;
 }
 
 void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
+	uint8_t cycles = 17;
 	std::string memory_address = dis_memory_addresses_[dst];
-	std::string reg = dis_registers_[dst][w];
 	uint16_t disp = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
 	uint16_t imm = memory_->at(GetCsIp() + 4);
+
+	uint8_t memory_address_cycles = dis_memory_cycles_[dst][disp>0];
+	cycles += memory_address_cycles;
+
 	if (w == 1 && s == 0)
 	{
 		imm |= memory_->at(GetCsIp() + 5) << 8;
@@ -827,17 +852,18 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const uint8_t s, const uint8_t w, co
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)), cycles);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm), cycles);
 	}
 	ip_ += 4;
 }
 
 void CpuState::AddAdcSubSbcCmpItrmReg(const uint8_t s, const uint8_t w, const uint8_t dst, const uint8_t arith)
 {
+	uint8_t cycles = 4;
 	std::string reg_dest = dis_registers_[dst][w];
 	uint16_t imm = memory_->at(GetCsIp() + 2);
 	if (w == 1 && s == 0)
@@ -857,17 +883,18 @@ void CpuState::AddAdcSubSbcCmpItrmReg(const uint8_t s, const uint8_t w, const ui
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(static_cast<int16_t>(imm)), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(static_cast<int16_t>(imm)), cycles);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(imm), 0);
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(imm), cycles);
 	}
 	ip_ += 2;
 }
 
 void CpuState::AddImmToAcc(const uint8_t w)
 {
+	uint8_t cycles = 4;
 	uint16_t imm = memory_->at(GetCsIp() + 1);
 	if (w == 1)
 	{
@@ -878,7 +905,7 @@ void CpuState::AddImmToAcc(const uint8_t w)
 	registers_[0] += imm;
 	SetFlags(registers_[0]);
 	
-	DisassembleInstruction("ADD " + dis_registers_[0][w] + ", " + std::to_string(imm), 0);
+	DisassembleInstruction("ADD " + dis_registers_[0][w] + ", " + std::to_string(imm), cycles);
 	ip_ += 1 + w;
 }
 
