@@ -81,6 +81,8 @@ private:
 		{0x03, "SBB"},
 		{0x07, "CMP"}
 	};
+
+	uint32_t dis_total_cycles_ = 0;
 	
 	void SetFlags(const uint16_t val);
 	bool CheckParity(const uint16_t val) const;
@@ -219,7 +221,7 @@ public:
 	void PrintRegisters() const;
 	void PrintSegmentRegisters() const;
 	void PrintFlags() const;
-	void DisassembleInstruction(const std::string_view instruction);
+	void DisassembleInstruction(const std::string_view instruction, uint8_t cycles);
 	uint8_t DecodeInstruction();
 
     std::array<uint8_t, 0xF4240>& GetMemory();

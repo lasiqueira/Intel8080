@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 	auto file_size = ReadFile(file_name, cpu_state.GetMemory());
 
 	uint8_t stop = 0;
-	while (stop != 1)
+	while (stop != 1 && cpu_state.GetCsIp() < file_size)
 	{
 		stop = cpu_state.DecodeInstruction();
 	}

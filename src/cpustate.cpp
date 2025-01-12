@@ -50,9 +50,10 @@ void CpuState::PrintFlags() const
 		<< "TF: " << flags_.trap_ << std::endl;
 }
 
-void CpuState::DisassembleInstruction(const std::string_view instruction)
+void CpuState::DisassembleInstruction(const std::string_view instruction, const uint8_t cycles)
 {
-	std::cout << instruction << std::endl;
+	dis_total_cycles_ += cycles;
+	std::cout << instruction << " - " << "Cycles: +" << std::to_string(cycles) << " = " << dis_total_cycles_ << std::endl;
 }
 
 uint32_t CpuState::GetCsIp() const
@@ -259,7 +260,7 @@ void CpuState::MovRmtfgMem(const uint8_t d, const uint8_t w, const uint8_t src, 
 				memory_->at(memory_address) = static_cast<uint8_t>((registers_[src % 4] >> 8) & 0xFF);
 			}
 		}
-		DisassembleInstruction("MOV [" + memory_address_name + "], " + reg_name);
+		DisassembleInstruction("MOV [" + memory_address_name + "], " + reg_name, 0);
 	}
 	else
 	{
@@ -281,7 +282,7 @@ void CpuState::MovRmtfgMem(const uint8_t d, const uint8_t w, const uint8_t src, 
 				registers_[dst % 4] |= (val << 8);
 			}
 		}
-		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "]");
+		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "]", 0);
 	}
 	ip_++;
 }
@@ -313,7 +314,7 @@ void CpuState::MovRmtfgMemDisp8(const uint8_t d, const uint8_t w, const uint8_t 
 				memory_->at(memory_address + disp) = static_cast<uint8_t>((registers_[src % 4] >> 8) & 0xFF);
 			}
 		}
-		DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + reg_name);
+		DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + reg_name, 0);
 	}
 	else
 	{
@@ -336,7 +337,7 @@ void CpuState::MovRmtfgMemDisp8(const uint8_t d, const uint8_t w, const uint8_t 
 			}
 		}
 
-		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 2;
 }
@@ -366,7 +367,7 @@ void CpuState::MovRmtfgMemDisp16(const uint8_t d, const uint8_t w, const uint8_t
 				memory_->at(memory_address + disp) = static_cast<uint8_t>((registers_[src % 4] >> 8) & 0xFF);
 			}
 		}
-		DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + reg_name);
+		DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + reg_name, 0);
 	}
 	else
 	{
@@ -388,7 +389,7 @@ void CpuState::MovRmtfgMemDisp16(const uint8_t d, const uint8_t w, const uint8_t
 				registers_[dst % 4] |= (val << 8);
 			}
 		}
-		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("MOV " + reg_name + ", [" + memory_address_name + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 3;
 }
@@ -428,7 +429,7 @@ void CpuState::MovRmtfgReg(const uint8_t src, const uint8_t dst, const uint8_t w
 		}
 		
 	}
-	DisassembleInstruction("MOV " + reg_dest + ", " + reg_source);
+	DisassembleInstruction("MOV " + reg_dest + ", " + reg_source, 0);
 	ip_++;
 }
 
@@ -476,7 +477,7 @@ void CpuState::MovItrmMem(const uint8_t w, const uint8_t dst)
 		memory_->at(memory_address) = static_cast<uint8_t>(imm & 0xFF);
 	}
 	
-	DisassembleInstruction("MOV [" + memory_address_name + "], " + std::to_string(imm));
+	DisassembleInstruction("MOV [" + memory_address_name + "], " + std::to_string(imm), 0);
 	ip_ += 2 + w;
 }
 
@@ -496,7 +497,7 @@ void CpuState::MovItrmMemDisp8(const uint8_t w, const uint8_t dst)
 	{
 		memory_->at(memory_address + disp) = static_cast<uint8_t>(imm & 0xFF);
 	}
-	DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + std::to_string(imm));
+	DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + std::to_string(imm), 0);
 	ip_ += 3 + w;
 }
 
@@ -516,7 +517,7 @@ void CpuState::MovItrmMemDisp16(const uint8_t w, const uint8_t dst)
 	{
 		memory_->at(memory_address + disp) = static_cast<uint8_t>(imm & 0xFF);
 	}
-	DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + std::to_string(imm));
+	DisassembleInstruction("MOV [" + memory_address_name + "+" + std::to_string(disp) + "], " + std::to_string(imm), 0);
 	ip_ += 4 + w;
 }
 
@@ -542,7 +543,7 @@ void CpuState::MovItrmReg( const uint8_t w, const uint8_t dst)
 			registers_[dst % 4] |= (imm << 8);
 		}
 	}
-	DisassembleInstruction("MOV " + reg_name + ", " + std::to_string(imm));
+	DisassembleInstruction("MOV " + reg_name + ", " + std::to_string(imm), 0);
 	ip_+= 2 + w;
 }
 
@@ -569,7 +570,7 @@ void CpuState::MovImmToReg(const uint8_t w, const uint8_t reg)
 			registers_[reg % 4] |= (imm << 8);
 		}
 	}
-	DisassembleInstruction("MOV " + dis_registers_[reg][w] + ", " + std::to_string(imm));
+	DisassembleInstruction("MOV " + dis_registers_[reg][w] + ", " + std::to_string(imm), 0);
 	
 	ip_ += 1 + w;
 }
@@ -587,7 +588,7 @@ void CpuState::MovMemToAcc(const uint8_t w)
 		// is it always the full register?
 		registers_[0] = imm;
 	}
-	DisassembleInstruction("MOV " + dis_registers_[0][w] + ", [" + std::to_string(imm) + "]");
+	DisassembleInstruction("MOV " + dis_registers_[0][w] + ", [" + std::to_string(imm) + "]", 0);
 	ip_ += 1 + w;
 }
 
@@ -605,7 +606,7 @@ void CpuState::MovAccToMem(const uint8_t w)
 		// is it always the full register?
 		memory_->at(imm) = static_cast<uint8_t>(registers_[0] & 0xFF);
 	}
-	DisassembleInstruction("MOV [" + std::to_string(imm) + "], " + dis_registers_[0][w]);
+	DisassembleInstruction("MOV [" + std::to_string(imm) + "], " + dis_registers_[0][w], 0);
 	ip_ += 1 + w;
 }
 
@@ -653,11 +654,11 @@ void CpuState::AddRmwrtwMem(const uint8_t d, const uint8_t w, const uint8_t src,
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	if (d == 0)
 	{
-		DisassembleInstruction("ADD [" + memory_address + "], " + reg);
+		DisassembleInstruction("ADD [" + memory_address + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "]");
+		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "]", 0);
 	}
 	ip_++;
 }
@@ -669,12 +670,12 @@ void CpuState::AddRmwrtwMemDisp8(const uint8_t d, const uint8_t w, const uint8_t
 	uint8_t disp = memory_->at(GetCsIp() + 2);
 	if (d == 0)
 	{
-		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
 		
 	}
 	else
 	{
-		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 2;
 }
@@ -686,11 +687,11 @@ void CpuState::AddRmwrtwMemDisp16(const uint8_t d, const uint8_t w, const uint8_
 	uint16_t disp = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
 	if (d == 0)
 	{
-		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+		DisassembleInstruction("ADD [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("ADD " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 3;
 }
@@ -702,7 +703,7 @@ void CpuState::AddRmwrtwReg(uint8_t src, uint8_t dst, uint8_t w)
 	//TODO check how low/high byte registers are done for arithmetic operations
 	registers_[dst] += registers_[src];
 	SetFlags(registers_[dst]);
-	DisassembleInstruction("ADD " + reg_dest + ", " + reg_source);
+	DisassembleInstruction("ADD " + reg_dest + ", " + reg_source, 0);
 	ip_++;
 }
 
@@ -747,11 +748,11 @@ void CpuState::AddAdcSubSbcCmpItrmMem(const uint8_t s, const uint8_t w, const ui
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(static_cast<int16_t>(imm)));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(static_cast<int16_t>(imm)), 0);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(imm));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "], " + std::to_string(imm), 0);
 	}
 	ip_ += 2;
 }
@@ -769,11 +770,11 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp8(const uint8_t s, const uint8_t w, con
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)), 0);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm), 0);
 	}
 	ip_ += 3;
 }
@@ -791,11 +792,11 @@ void CpuState::AddAdcSubSbcCmpItrmMemDisp16(const uint8_t s, const uint8_t w, co
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(static_cast<int16_t>(imm)), 0);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " [" + memory_address + "+" + std::to_string(disp) + "], " + std::to_string(imm), 0);
 	}
 	ip_ += 4;
 }
@@ -821,11 +822,11 @@ void CpuState::AddAdcSubSbcCmpItrmReg(const uint8_t s, const uint8_t w, const ui
 	}
 	if (s == 1)
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(static_cast<int16_t>(imm)));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(static_cast<int16_t>(imm)), 0);
 	}
 	else
 	{
-		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(imm));
+		DisassembleInstruction(dis_arithmetic_imm_reg_operations_[arith] + " " + reg_dest + ", " + std::to_string(imm), 0);
 	}
 	ip_ += 2;
 }
@@ -842,7 +843,7 @@ void CpuState::AddImmToAcc(const uint8_t w)
 	registers_[0] += imm;
 	SetFlags(registers_[0]);
 	
-	DisassembleInstruction("ADD " + dis_registers_[0][w] + ", " + std::to_string(imm));
+	DisassembleInstruction("ADD " + dis_registers_[0][w] + ", " + std::to_string(imm), 0);
 	ip_ += 1 + w;
 }
 
@@ -888,11 +889,11 @@ void CpuState::SubRmwrtwMem(const uint8_t d, const uint8_t w, const uint8_t src,
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	if (d == 0)
 	{
-		DisassembleInstruction("SUB [" + memory_address + "], " + reg);
+		DisassembleInstruction("SUB [" + memory_address + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("SUB " + reg + ", [" + memory_address + "]");
+		DisassembleInstruction("SUB " + reg + ", [" + memory_address + "]", 0);
 	}
 	ip_++;
 }
@@ -904,11 +905,11 @@ void CpuState::SubRmwrtwMemDisp8(const uint8_t d, const uint8_t w, const uint8_t
 	uint8_t disp = memory_->at(GetCsIp() + 2);
 	if (d == 0)
 	{
-		DisassembleInstruction("SUB [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+		DisassembleInstruction("SUB [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("SUB " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("SUB " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 2;
 }
@@ -920,11 +921,11 @@ void CpuState::SubRmwrtwMemDisp16(const uint8_t d, const uint8_t w, const uint8_
 	uint16_t disp = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
 	if (d == 0)
 	{
-		DisassembleInstruction("SUB [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+		DisassembleInstruction("SUB [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("SUB " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("SUB " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 3;
 }
@@ -936,7 +937,7 @@ void CpuState::SubRmwrtwReg(const uint8_t src, const uint8_t dst, const uint8_t 
 	//TODO check how low/high byte registers are done for arithmetic operations
 	registers_[dst] -= registers_[src];
 	SetFlags(registers_[dst]);
-	DisassembleInstruction("SUB " + reg_dest + ", " + reg_source);
+	DisassembleInstruction("SUB " + reg_dest + ", " + reg_source, 0);
 	ip_++;
 }
 
@@ -952,7 +953,7 @@ void CpuState::SubImmToAcc(const uint8_t w)
 	registers_[0] -= imm;
 	SetFlags(registers_[0]);
 
-	DisassembleInstruction("SUB " + dis_registers_[0][w] + ", " + std::to_string(imm));
+	DisassembleInstruction("SUB " + dis_registers_[0][w] + ", " + std::to_string(imm), 0);
 	ip_ += 1 + w;
 }
 
@@ -998,11 +999,11 @@ void CpuState::CmpRmarMem(const uint8_t d, const uint8_t w, const uint8_t src, c
 	std::string reg = d == 0 ? dis_registers_[src][w] : dis_registers_[dst][w];
 	if (d == 0)
 	{
-		DisassembleInstruction("CMP [" + memory_address + "], " + reg);
+		DisassembleInstruction("CMP [" + memory_address + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("CMP " + reg + ", [" + memory_address + "]");
+		DisassembleInstruction("CMP " + reg + ", [" + memory_address + "]", 0);
 	}
 	ip_++;
 }
@@ -1014,11 +1015,11 @@ void CpuState::CmpRmarMemDisp8(const uint8_t d, const uint8_t w, const uint8_t s
 	uint8_t disp = memory_->at(GetCsIp() + 2);
 	if (d == 0)
 	{
-		DisassembleInstruction("CMP [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+		DisassembleInstruction("CMP [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("CMP " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("CMP " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 2;
 }
@@ -1030,11 +1031,11 @@ void CpuState::CmpRmarMemDisp16(const uint8_t d, const uint8_t w, const uint8_t 
 	uint16_t disp = memory_->at(GetCsIp() + 2) | memory_->at(GetCsIp() + 3) << 8;
 	if (d == 0)
 	{
-		DisassembleInstruction("CMP [" + memory_address + "+" + std::to_string(disp) + "], " + reg);
+		DisassembleInstruction("CMP [" + memory_address + "+" + std::to_string(disp) + "], " + reg, 0);
 	}
 	else
 	{
-		DisassembleInstruction("CMP " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]");
+		DisassembleInstruction("CMP " + reg + ", [" + memory_address + "+" + std::to_string(disp) + "]", 0);
 	}
 	ip_ += 3;
 }
@@ -1045,7 +1046,7 @@ void CpuState::CmpRmarReg(uint8_t src, uint8_t dst, uint8_t w)
 	std::string reg_dest = dis_registers_[dst][w];
 	//TODO check how low/high byte registers are done for arithmetic operations
 	SetFlags(registers_[dst] - registers_[src]);
-	DisassembleInstruction("CMP " + reg_dest + ", " + reg_source);
+	DisassembleInstruction("CMP " + reg_dest + ", " + reg_source, 0);
 	ip_++;
 }
 
@@ -1053,19 +1054,19 @@ void CpuState::CmpImmWithAcc(uint8_t w)
 {
 	uint16_t imm = memory_->at(GetCsIp() + 1);
 	if (w == 1)
-	{
+	{ 
 		imm |= memory_->at(GetCsIp() + 2) << 8;
 	}
 	//TODO check if low high acc needs to be implemented. Even the disassemble might need to be fixed as I'd be considering only the low;
 	SetFlags(registers_[0] - imm);
-	DisassembleInstruction("CMP " + dis_registers_[0][w] + ", " + std::to_string(imm));
+	DisassembleInstruction("CMP " + dis_registers_[0][w] + ", " + std::to_string(imm), 0);
 	ip_ += 1 + w;
 }
 
 void CpuState::JneJnz()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNE " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNE " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.zero_ == 0)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1077,7 +1078,7 @@ void CpuState::JneJnz()
 void CpuState::JeJz()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JE " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JE " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.zero_ == 1)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1089,7 +1090,7 @@ void CpuState::JeJz()
 void CpuState::JlJnge()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JL " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JL " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.sign_ != flags_.overflow_)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1101,7 +1102,7 @@ void CpuState::JlJnge()
 void CpuState::JleJng()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JLE " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JLE " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.zero_ == 1 || flags_.sign_ != flags_.overflow_)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1113,7 +1114,7 @@ void CpuState::JleJng()
 void CpuState::JbJnae()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JB " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JB " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.carry_ == 1)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1125,7 +1126,7 @@ void CpuState::JbJnae()
 void CpuState::JbeJna()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JBE " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JBE " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.zero_ == 1 || flags_.carry_ == 1)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1137,7 +1138,7 @@ void CpuState::JbeJna()
 void CpuState::JpJpe()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JP " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JP " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.parity_ == 1)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1149,7 +1150,7 @@ void CpuState::JpJpe()
 void CpuState::JnpJpo()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNP " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNP " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.parity_ == 0)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1161,7 +1162,7 @@ void CpuState::JnpJpo()
 void CpuState::Jo()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JO " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JO " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.overflow_ == 1)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1173,7 +1174,7 @@ void CpuState::Jo()
 void CpuState::Js()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JS " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JS " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.sign_ == 1)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1185,7 +1186,7 @@ void CpuState::Js()
 void CpuState::JnlJge()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNL " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNL " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.sign_ == flags_.overflow_)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1197,7 +1198,7 @@ void CpuState::JnlJge()
 void CpuState::JnleJg()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNLE " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNLE " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.zero_ == 0 && flags_.sign_ == flags_.overflow_)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1209,7 +1210,7 @@ void CpuState::JnleJg()
 void CpuState::JnbJae()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNB " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNB " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.carry_ == 0)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1221,7 +1222,7 @@ void CpuState::JnbJae()
 void CpuState::JnbeJa()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNBE " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNBE " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.zero_ == 0 && flags_.carry_ == 0)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1233,7 +1234,7 @@ void CpuState::JnbeJa()
 void CpuState::Jno()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNO " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNO " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.overflow_ == 0)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1245,7 +1246,7 @@ void CpuState::Jno()
 void CpuState::Jns()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JNS " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JNS " + std::to_string(static_cast<int8_t>(imm)), 0);
 	if (flags_.sign_ == 0)
 	{
 		ip_ += static_cast<int8_t>(imm);
@@ -1257,28 +1258,28 @@ void CpuState::Jns()
 void CpuState::Loop()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("LOOP " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("LOOP " + std::to_string(static_cast<int8_t>(imm)), 0);
 	ip_++;
 }
 
 void CpuState::LoopzLoope()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("LOOPZ " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("LOOPZ " + std::to_string(static_cast<int8_t>(imm)), 0);
 	ip_++;
 }
 
 void CpuState::LoopnzLoopne()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("LOOPNZ " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("LOOPNZ " + std::to_string(static_cast<int8_t>(imm)), 0);
 	ip_++;
 }
 
 void CpuState::Jcxz()
 {
 	uint8_t imm = memory_->at(GetCsIp() + 1);
-	DisassembleInstruction("JCXZ " + std::to_string(static_cast<int8_t>(imm)));
+	DisassembleInstruction("JCXZ " + std::to_string(static_cast<int8_t>(imm)), 0);
 	ip_++;
 }
 
